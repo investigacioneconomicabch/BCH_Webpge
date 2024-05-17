@@ -1,0 +1,107 @@
+---
+title: 'IMFData.jl'
+author: stephenbnicar
+execute:
+  echo: true
+format:
+  html:
+      code-fold: true
+      code-tools: true
+      toc: true
+      echo: false
+keep-ipynb: true
+jupyter: julia-1.10
+---
+
+```{julia}
+#import Pkg; Pkg.add("IMFData")
+using Azure, CSV, DataFrames, DataFramesMeta, HTTP, JSON
+
+wd = @__DIR__
+```
+
+
+```{julia}
+clave_asignada = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
+clave_asignada = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
+# url = "https://bchapi-am.azure-api.net/api",name="clave_asignada",type="header"
+# hdr ={'Cache-Control': 'no-cache',
+#       'clave': clave_asignada,}
+# key = clave_asignada
+# res = HTTP.get(url);
+# dfmeta = get_info(url, hdr)
+# header = hdr
+# req = urllib.request.Request(url, headers=header)
+```
+
+
+
+```{julia}
+
+# https://discourse.julialang.org/t/how-to-connect-to-a-web-api/87490
+using HTTP
+using JSON3
+
+access_token = clave_asignada  # your api key
+list_id = 1
+
+# resp = HTTP.get(
+#       url,  # url
+#       [
+#           "name" => access_token  # headers by pairs
+#           "type" => "header"
+#       ]
+# )
+
+# data = JSON3.read(resp.body)  # json data as a dict-like structure
+```
+
+
+
+```{julia}
+usr = Dict("Authorization" => clave_asignada)
+JSON.parse(String(HTTP.get(url, clave = clave_asignada)))
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
