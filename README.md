@@ -53,7 +53,7 @@ exec(open(file_path + "/functions/bch_api.py").read())
 url = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
 hdr ={'Cache-Control': 'no-cache',
       'clave': clave_asignada,}
-dfmeta = get_info(url, hdr)
+dfmeta = get_groups_vscode()
 dfmeta.head()
 ```
 
@@ -71,7 +71,7 @@ Las variables están categorizadas en 8 grupos principales y 54 subgrupos (colum
 La nomenclatura utilizada permite dividir estos en un máximo de cinco niveles, tomando en cuenta el separador (-). Puede verse el detalle a continuacion, ordenando de acuerdo al número de niveles (número de subgrupos):
 
 ```
-res_grupo = save_groups()
+res_grupo = save_groups_vscode()
 print(res_grupo)
 ```
 
@@ -80,14 +80,14 @@ Esta información, una vez que se ejecuta la función previa, se guarda en `/api
 La consulta por variable se realiza tomando en cuenta el número asignado en la API (Id). El listado de todas las variables se obtiene mediante una función:
 
 ```
-df_all = save_variables()
+df_all = save_variables_vscode()
 print(df_all)
 ```
 
 Una vez que se ejecuta la función previa, la información sobre las variables (incluyendo su "Id") se guarda en `/api/variables.csv`. Cada una de las variables (excepto el rango desde 7392 hasta 7446), pueden consultarse mediante el siguiente código:
 
 ```
-df_all = save_variables()
+df_all = save_variables_vscode()
 Id = 204
 df = get_df(Id)
 get_plot(Id)
