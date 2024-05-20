@@ -19,7 +19,7 @@ wd = wd * "/"
 
 # Archivos
 
-Para obtener el archivo de Excel desde donde se extraen todas las series (`wd * "data/archivos.csv"`), ejecutar el procedimiento del archivo `crape_bch.py` de la carpeta `functions`.
+Para obtener el archivo de Excel desde donde se extraen todas las series (`wd * "data/archivos.csv"`), ejecutar el procedimiento del archivo `scrape_bch.py` de la carpeta `functions`.
 En este archivo, debe cambiarse la ruta, de acuerdo a la carpeta en que se encuentran los datos
 
 ```{julia}
@@ -412,7 +412,7 @@ df
 Este archivo contiene dos fechas: Emisión y Vencimiento, por lo que no tiene el mismo formato del resto.
 
 ```{julia}
-archivo = 22
+archivo = 1#22
 url = archivos.XLSXLinks[archivo][3:end-2] # 91 archivos, no se encuentran [23,49,70]
 
 # DataFrame from URL
@@ -444,7 +444,7 @@ df.Nombre .= archivos.Nombre[archivo]
 df.Nombre_abv .= archivos.Nombre_abv[archivo]
 df.Code .= archivos.Code[archivo]
 CSV.write(
-    wd * "data/OMA.csv",
+    wd * "data/Reportes_Dinamicos_1serie.csv",
     delim = ";",
     df)
 df

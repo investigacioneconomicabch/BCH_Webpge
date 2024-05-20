@@ -8,9 +8,16 @@ execute:
 #   html:
 #     toc: true
 format: 
-  pdf:
+  html:
     toc: true
     warnings: false
+    warning: false
+    message: false
+    echo: false
+    code-tools:
+      source: false
+      toggle: false
+      caption: none
 keep-ipynb: true
 lang: es
 jupyter: julia-1.10
@@ -26,7 +33,6 @@ Las librerías de R que deben instalarse previamente son:
 - rio
 
 ```{julia}
-#using CategoricalArrays,Chain,CSV,DataFrames,Dates,FileIO,ImageShow,LaTeXStrings,Metrics,Plots,Plotly,PrettyTables,RCall,Statistics,StatsBase,StatsPlots,StateSpaceModels,XLSX;
 using CSV,DataFrames,Dates,RCall,StatsBase
 
 wd = @__DIR__;
@@ -42,6 +48,7 @@ CSV.write(
     delim = ";")
 ```
 
+# Resultados
 
 ```{julia}
 data
