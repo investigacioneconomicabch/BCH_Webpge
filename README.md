@@ -5,8 +5,8 @@ Este repositorio contiene archivos que permiten obtener series estadísticas de 
 Los mecanismos de consulta son los siguientes:
 
 1. BCH_API_Python.qmd: uso de la API para consulta de más de 15,000 variables contenidas en los archivos dinámicos.
-2. BCH_Webpage.qmd: 
-3. PaginaWeb_Julia.qmd
+2. BCH_Webpage.qmd: consulta de algunos archivos ubicados en diferentes rutas de la página web del BCH.
+3. PaginaWeb_Julia.qmd: consulta a archivos dinámicos de la página web del BCH.
 
 ## BCH_API_Python.qmd
 
@@ -125,9 +125,9 @@ print(df)
 
 Todos los códigos previos están listos para ejecutarse desde el archivo `call_api.py`. Las funciones detalladas previamente se relacionan con la ejecución del código desde VSCode, mientras que las guardadas en el archivo `call_api.py` son las correspondientes a ejecutar el código desde Python.
 
-## PaginaWebBCH.qmd
+## BCH_Webpage.qmd
 
-Proceso para descargar y procesar datos desde la página web del [Banco Central de Honduras (BCH)](www.bch.hn) usando Julia, teniendo como resultado un solo archivo.
+Proceso para descargar y procesar datos desde la página web del [Banco Central de Honduras (BCH)](www.bch.hn) usando Julia y R, teniendo como resultado un solo archivo. Esto permite obtener datos económicos en formato de serie, disponibles de manera individual en diferentes sitios de la página web, utilizando una consulta al archivo de Excel mediante librerías en R y modificando el formato original con procesos en Julia.
 
 Para ejecutar este proceso desde una computadora, una vez descargados todos los archivos que contiene este repositorio, se necesitan tres cosas:
 1) Instalar [R](https://cran.r-project.org/bin/windows/base/) y los paquetes "readxl" y "rio"
@@ -149,8 +149,41 @@ CSV.write(
     delim = ";")
 ````
 
-Las funciones utilizadas se encuentran en la carpeta "functions", archivos "fn_process.jl" y "fn_get_data.jl".
+Las funciones utilizadas se encuentran en la carpeta "functions", archivos `fn_process.jl` y `fn_get_data.jl`.
 
 Los datos actualizados se guardan en la carpeta "data", archivo "database.csv".
 
 Los datos del archivo "database.csv" cargados en Power BI (tablas y gráficos) pueden verse en la página web del [BCH](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/series-estadisticas-consolidadas).
+
+Conviene mencionar que los datos se generan a través de consulta a archivos específicos, cuya ruta puede modificarse (por ejemplo, si para la carga de datos del IPC se modifica la ruta "https://www.bch.hn/estadisticos/GIE/LIBSeries%20IPC/Serie%20Mensual%20y%20Promedio%20Anual%20del%20%C3%8Dndice%20de%20Precios%20al%20Consumidor.xls), por lo que podrían generarse errores, mismos que pueden corregirse mediante el seguimiento al código en el archivo `fn_get_data.jl`.
+
+## PaginaWeb_Julia.qmd
+
+Permite recopilar en un solo archivo los datos contenidos en los [archivos dinámicos](https://bchapi-am.developer.azure-api.net/) de la página web del Banco Central de Honduras (BCH), utilizando **Python** y **Julia**.
+
+Para obtener el archivo de Excel desde donde se extraen todas las series (`wd * "data/archivos.csv"`), ejecutar el procedimiento del archivo `scrape_bch.py` de la carpeta `functions`; en este archivo, debe cambiarse la ruta, de acuerdo a la carpeta en que se encuentran los datos. Para ejecutar todo el código contenido en este archivo, se utiliza `PyCall.@pyinclude(wd * "functions/scrape_bch.py")`.
+
+```
+using Chain,Conda,CSV,DataFrames,Dates
+using HTTP,PyCall,XLSX
+
+wd = @__DIR__
+wd = wd * "/"
+PyCall.@pyinclude(wd * "functions/scrape_bch.py")
+```
+
+Las rutas que permiten ejecutar las consultas a la página web se encuentran en `data/archivos.csv`. Su contenido puede verse mediante:
+
+```
+archivos = CSV.read(
+    wd * "data/archivos.csv",
+    DataFrames.DataFrame)
+```
+
+Las columnas de este archivo son las siguientes:
+
+* Sector: ruta inicial de los [archivos dinámicos](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos)
+* Path: siguiente ruta para los archivos dinámicos; por ejemplo, para las "estadísticas cambiarias", se tienen [varios submenús](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/estadisticas-cambiarias).
+
+
+
