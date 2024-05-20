@@ -120,7 +120,7 @@ df.write_csv(
 print(df)    
 ```
 
-Todos los códigos previos están listos para ejecutarse desde el archivo `call_api.py`.
+Todos los códigos previos están listos para ejecutarse desde el archivo `call_api.py`. Las funciones detalladas previamente se relacionan con la ejecución del código desde VSCode, mientras que las guardadas en el archivo `call_api.py` son las correspondientes a ejecutar el código desde Python.
 
 ## PaginaWebBCH.qmd
 Proceso para descargar y procesar datos desde la página web del [Banco Central de Honduras (BCH)](www.bch.hn) usando Julia, teniendo como resultado un solo archivo.
