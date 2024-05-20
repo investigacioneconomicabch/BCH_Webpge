@@ -276,17 +276,17 @@ Las variables están categorizadas en 8 grupos principales y 54 subgrupos. La no
 
 ```{python}
 # Agregar niveles de Descripción y Grupo
-# df_all = dfmeta
-# df_all[['Niv_Descr_1','Niv_Descr_2','Niv_Descr_3','Niv_Descr_4','Niv_Descr_5','Niv_Descr_6','Niv_Descr_7','Niv_Descr_8']] = df_all['Descripcion'].str.split(
-#     '-',expand=True)
-# df_all["Niv_Descr"] = df_all.notnull().sum(axis=1) - 6
-# df_all[
-#     ['Niv_Gr_1','Niv_Gr_2','Niv_Gr_3','Niv_Gr_4','Niv_Gr_5']]  = df_all['Grupo'].str.split('-',expand=True)
-# df_all["Niv_Gr"] = df_all.notnull().sum(axis=1) - 2
-# df_all = pl.DataFrame(df_all)
-# df_all.write_csv(
-#         "api/variables.csv",
-#         separator=";")
+df_all = dfmeta
+df_all[['Niv_Descr_1','Niv_Descr_2','Niv_Descr_3','Niv_Descr_4','Niv_Descr_5','Niv_Descr_6','Niv_Descr_7','Niv_Descr_8']] = df_all['Descripcion'].str.split(
+    '-',expand=True)
+df_all["Niv_Descr"] = df_all.notnull().sum(axis=1) - 6
+df_all[
+    ['Niv_Gr_1','Niv_Gr_2','Niv_Gr_3','Niv_Gr_4','Niv_Gr_5']]  = df_all['Grupo'].str.split('-',expand=True)
+df_all["Niv_Gr"] = df_all.notnull().sum(axis=1) - 2
+df_all = pl.DataFrame(df_all)
+df_all.write_csv(
+        "api/variables.csv",
+        separator=";")
 
 # # Resumen por Grupo
 # variable = "Grupo"
@@ -386,7 +386,7 @@ La consulta para una serie individual puede realizarse solamente mediante el uso
 ```{python}
 Id = 1701
 df = get_df(Id)
-get_plot(Id)
+# get_plot(Id)
 df
 ```
 
@@ -413,7 +413,7 @@ Resultados de una sola variable:
 ```{python}
 Id = 6261
 df = get_df(Id)
-get_plot(Id)
+# get_plot(Id)
 df
 ```
 
@@ -1515,7 +1515,7 @@ Resultados de una sola variable:
 ```{python}
 Id = 441
 df = get_df(Id)
-get_plot(Id)
+# get_plot(Id)
 df
 ```
 
@@ -1563,7 +1563,7 @@ Resultados de una sola variable:
 ```{python}
 Id = 503
 df = get_df(Id)
-get_plot(Id)
+# get_plot(Id)
 df
 ```
 
@@ -1670,8 +1670,7 @@ Para ver todas las variables:
 res_nivel_7(
     "ESE","CEB",
     "Niv_Gr_3",
-    "04","Id","Niv_Descr_1","Niv_Descr_2","Niv_Descr_3"
-    )
+    "04","Id","Niv_Descr_1","Niv_Descr_2","Niv_Descr_3")
 ```
 
 Resultados de una sola variable:
@@ -1791,8 +1790,8 @@ Resultados de una sola variable:
 
 ```{python}
 Id = 388
-# df = get_df(Id)
-get_plot(Id)
+df = get_df(Id)
+# get_plot(Id)
 df
 ```
 
@@ -1921,8 +1920,8 @@ Resultados de una sola variable:
 
 ```{python}
 Id = 548
-# df = get_df(Id)
-get_plot(Id)
+df = get_df(Id)
+# get_plot(Id)
 df
 ```
 
@@ -2630,7 +2629,8 @@ res
 ## Una sola variable
 
 ```{python}
-df_all = save_variables()
+# df_all = save_variables()
+df_all = save_variables_vscode()
 Id = 204
 df = get_df(Id)
 get_plot(Id)
@@ -2667,8 +2667,10 @@ for i in range(1,len(Id)):
         right_on=['Fecha'], 
         how='left')
 df.write_csv(
-    file_path + "api/data.csv",
+    file_path + "/api/data.csv",
     separator=";")
 df    
 ```
 
+```{python}
+```
