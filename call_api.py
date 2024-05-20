@@ -11,17 +11,21 @@ from tabulate import tabulate
 clave_asignada = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
 
 file_path = os.path.dirname(__file__)
+# file_path = os.getcwd()
 exec(open(file_path + "/functions/bch_api.py").read())
 
 # Obtener los grupos
+# dfmeta = get_groups_vscode()
 dfmeta = get_groups()
 print(dfmeta.head())
 
 # Guardar grupos en un archivo
+# res_grupo = save_groups_vscode()
 res_grupo = save_groups()
 print(res_grupo)
 
 # Obtener listado de las variables
+# df_all = save_variables_vscode()
 df_all = save_variables()
 print(df_all)
 
