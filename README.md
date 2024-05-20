@@ -4,9 +4,9 @@ Este repositorio contiene archivos que permiten obtener series estadísticas de 
 
 Los mecanismos de consulta son los siguientes:
 
-1. BCH_API_Python.qmd
-2. PaginaWeb_Julia.qmd
-3. BCH_Webpage.qmd
+1. BCH_API_Python.qmd: uso de la API para consulta de más de 15,000 variables contenidas en los archivos dinámicos.
+2. BCH_Webpage.qmd: 
+3. PaginaWeb_Julia.qmd
 
 ## BCH_API_Python.qmd
 
@@ -68,9 +68,10 @@ Las variables están categorizadas en 8 grupos principales y 54 subgrupos (colum
 7. EC = [Estadísticas de Tipo de Cambio](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/tipo-de-cambio)
 8. EP = [Estadísticas de Precios](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/precios)
 
-La nomenclatura utilizada permite dividir estos en un máximo de cinco niveles, tomando en cuenta el separador (-). Puede verse el detalle a continuacion, ordenando de acuerdo al número de niveles (número de subgrupos):
+La nomenclatura utilizada permite dividir estos en un máximo de cinco niveles, tomando en cuenta el separador (-). Puede verse el detalle a continuacion, ordenando de acuerdo al número de niveles (número de subgrupos)^[Nota: en caso que el comando `_vscode` genere errores, usar el comando previo sin este agregado.]:
 
 ```
+# res_grupo = save_groups()
 res_grupo = save_groups_vscode()
 print(res_grupo)
 ```
@@ -80,6 +81,7 @@ Esta información, una vez que se ejecuta la función previa, se guarda en `/api
 La consulta por variable se realiza tomando en cuenta el número asignado en la API (Id). El listado de todas las variables se obtiene mediante una función:
 
 ```
+# df_all = save_variables()
 df_all = save_variables_vscode()
 print(df_all)
 ```
@@ -87,6 +89,7 @@ print(df_all)
 Una vez que se ejecuta la función previa, la información sobre las variables (incluyendo su "Id") se guarda en `/api/variables.csv`. Cada una de las variables (excepto el rango desde 7392 hasta 7446), pueden consultarse mediante el siguiente código:
 
 ```
+# df_all = save_variables()
 df_all = save_variables_vscode()
 Id = 204
 df = get_df(Id)
@@ -123,6 +126,7 @@ print(df)
 Todos los códigos previos están listos para ejecutarse desde el archivo `call_api.py`. Las funciones detalladas previamente se relacionan con la ejecución del código desde VSCode, mientras que las guardadas en el archivo `call_api.py` son las correspondientes a ejecutar el código desde Python.
 
 ## PaginaWebBCH.qmd
+
 Proceso para descargar y procesar datos desde la página web del [Banco Central de Honduras (BCH)](www.bch.hn) usando Julia, teniendo como resultado un solo archivo.
 
 Para ejecutar este proceso desde una computadora, una vez descargados todos los archivos que contiene este repositorio, se necesitan tres cosas:
