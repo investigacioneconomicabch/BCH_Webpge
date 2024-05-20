@@ -115,7 +115,8 @@ def save_variables():
 
 def save_variables_vscode():
     file_path = os.getcwd()
-    dfmeta = get_groups()
+    # dfmeta = get_groups()
+    dfmeta = get_groups_vscode()
     df_all = dfmeta
     df_all[['Niv_Descr_1','Niv_Descr_2','Niv_Descr_3','Niv_Descr_4','Niv_Descr_5','Niv_Descr_6','Niv_Descr_7','Niv_Descr_8']] = df_all['Descripcion'].str.split(
         '-',expand=True)
