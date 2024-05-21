@@ -1,23 +1,22 @@
 ---
-title: 'BCH_Webpage'
+title: 'Datos a partir de Archivos de Excel, Página Web BCH'
 author: Elvis Casco
 execute:
   echo: false
   warning: false
-# format: 
-#   html:
-#     toc: true
 format: 
   html:
     toc: true
+    toc-depth: 7
     warnings: false
     warning: false
     message: false
-    echo: false
+    echo: true
     code-tools:
       source: false
       toggle: false
       caption: none
+    code-fold: true
 keep-ipynb: true
 lang: es
 jupyter: julia-1.10
@@ -33,7 +32,7 @@ Las librerías de R que deben instalarse previamente son:
 - rio
 
 ```{julia}
-using CSV,DataFrames,Dates,RCall,StatsBase
+using Chain,CSV,DataFrames,Dates,RCall,StatsBase
 
 wd = @__DIR__;
 include(wd * "/functions/fn_process.jl");

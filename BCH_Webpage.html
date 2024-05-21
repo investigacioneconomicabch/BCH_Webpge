@@ -8,7 +8,7 @@
 
 <meta name="author" content="Elvis Casco">
 
-<title>BCH_Webpage</title>
+<title>Datos a partir de Archivos de Excel, Página Web BCH</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -58,7 +92,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">BCH_Webpage</h1>
+<h1 class="title">Datos a partir de Archivos de Excel, Página Web BCH</h1>
 </div>
 
 
@@ -87,7 +121,25 @@ ul.task-list li input[type="checkbox"] {
 <li>readxl</li>
 <li>rio</li>
 </ul>
+<div class="cell" data-execution_count="1">
+<details>
+<summary>Código</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Chain</span>,<span class="bu">CSV</span>,<span class="bu">DataFrames</span>,<span class="bu">Dates</span>,<span class="bu">RCall</span>,<span class="bu">StatsBase</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>wd <span class="op">=</span> <span class="pp">@__DIR__</span>;</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">include</span>(wd <span class="op">*</span> <span class="st">"/functions/fn_process.jl"</span>);</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">include</span>(wd <span class="op">*</span> <span class="st">"/functions/fn_get_data.jl"</span>);</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
 <div class="cell" data-execution_count="2">
+<details>
+<summary>Código</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> <span class="fu">get_data</span>()</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>CSV.<span class="fu">write</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    wd <span class="op">*</span> <span class="st">"/data/database.csv"</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    data;</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    delim <span class="op">=</span> <span class="st">";"</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>New names:
 * `` -&gt; `...2`
@@ -1630,7 +1682,7 @@ New names:
 * `` -&gt; `...257`
 * `` -&gt; `...258`</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="8">
+<div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>"C:\\Directorio_Trabajo\\GitHub\\BCH_Webpage-main/data/database.csv"</code></pre>
 </div>
 </div>
@@ -1638,8 +1690,12 @@ New names:
 <section id="resultados" class="level1">
 <h1>Resultados</h1>
 <div class="cell" data-execution_count="3">
-<div class="cell-output cell-output-display" data-execution_count="9">
-<div><div style="float: left;"><span>77486×7 DataFrame</span></div><div style="float: right;"><span style="font-style: italic;">77461 rows omitted</span></div><div style="clear: both;"></div></div><div class="data-frame" style="overflow-x: scroll;">
+<details>
+<summary>Código</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>data</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<div><div style="float: left;"><span>77488×7 DataFrame</span></div><div style="float: right;"><span style="font-style: italic;">77463 rows omitted</span></div><div style="clear: both;"></div></div><div class="data-frame" style="overflow-x: scroll;">
 <table class="data-frame table table-sm table-striped small" data-quarto-postprocess="true">
 <thead>
 <tr class="header header">
@@ -1805,7 +1861,7 @@ New names:
 <td style="text-align: right;">⋮</td>
 </tr>
 <tr class="odd">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77475</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77477</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.03 RENTA</td>
 <td style="text-align: left;">61219.4</td>
@@ -1815,7 +1871,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="even">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77476</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77478</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.03.01 Remuneración de Empleados</td>
 <td style="text-align: left;">36568.7</td>
@@ -1825,7 +1881,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="odd">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77477</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77479</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.03.02 Renta de la Inversión</td>
 <td style="text-align: left;">24650.7</td>
@@ -1835,7 +1891,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="even">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77478</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77480</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.04 TRANSFERENCIAS CORRIENTES</td>
 <td style="text-align: left;">18748.4</td>
@@ -1845,7 +1901,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="odd">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77479</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77481</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.04.01 Donaciones Oficiales</td>
 <td style="text-align: left;">151.0</td>
@@ -1855,7 +1911,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="even">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77480</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77482</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.04.02 Donaciones Privadas</td>
 <td style="text-align: left;">72.2</td>
@@ -1865,7 +1921,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="odd">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77481</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77483</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.04.03 Remesas Familiares</td>
 <td style="text-align: left;">18525.2</td>
@@ -1875,7 +1931,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="even">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77482</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77484</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.05 MOVIMIENTOS DE CAPITAL Y FINANCIEROS</td>
 <td style="text-align: left;">51404.1</td>
@@ -1885,7 +1941,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="odd">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77483</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77485</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.05.01 Capital Sector Privado</td>
 <td style="text-align: left;">11781.1</td>
@@ -1895,7 +1951,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="even">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77484</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77486</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.05.02 Capital Sector Bancario</td>
 <td style="text-align: left;">0.0</td>
@@ -1905,7 +1961,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="odd">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77485</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77487</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">02.05.03 Capital Sector Público</td>
 <td style="text-align: left;">39623.0</td>
@@ -1915,7 +1971,7 @@ New names:
 <td style="text-align: left;">https://www.bch.hn/estadisticas-y-publicaciones-economicas/Grupo-externo/balanza-de-pagos/cuenta-corriente/importaciones</td>
 </tr>
 <tr class="even">
-<td class="rowNumber" style="text-align: right; font-weight: bold;">77486</td>
+<td class="rowNumber" style="text-align: right; font-weight: bold;">77488</td>
 <td style="text-align: left;">2024-04-01</td>
 <td style="text-align: left;">TOTAL EGRESOS</td>
 <td style="text-align: left;">1.75115e6</td>
