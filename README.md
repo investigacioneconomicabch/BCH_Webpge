@@ -24,6 +24,15 @@ import subprocess
 
 from IPython.display import Markdown
 from tabulate import tabulate
+
+clave_asignada = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" #Favor ingresar la clave proporcionada.
+
+# Las funciones que ejecutan los procesos están guardadas
+# en el archivo "/functions/bch_api.py";
+# si se ejecuta este código en otra ruta, debe sustituirse el path:
+# file_path + "/functions/bch_api.py"
+file_path = os.path.dirname(__file__)
+exec(open(file_path + "/functions/bch_api.py").read())
 ```
 
 Una vez que se crea el registro de usuario (usar el botón "Suscribirse" en el [sitio web](https://bchapi-am.developer.azure-api.net/), puede verse el procedimiento de registro e inicio de sesión en [YouTube](https://www.youtube.com/watch?v=8ZBllMSsKw4)), se necesita obtener una clave (ver explicación en [YouTube](https://www.youtube.com/watch?v=mV90s74OCfc)), ejecutando una consulta al catálogo de indicadores. Favor sustituir en el código la clave actual por su clave asignada.
@@ -41,15 +50,6 @@ Las funciones utilizadas para ejecutar el proceso se encuentran en el archivo `f
 Como ejemplo de la consulta que contiene todas las variables, se muestran los primeros cinco elementos:
 
 ```
-clave_asignada = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" #Favor ingresar la clave proporcionada.
-
-# Las funciones que ejecutan los procesos están guardadas
-# en el archivo "/functions/bch_api.py";
-# si se ejecuta este código en otra ruta, debe sustituirse el path:
-# file_path + "/functions/bch_api.py"
-file_path = os.path.dirname(__file__)
-exec(open(file_path + "/functions/bch_api.py").read())
-
 url = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
 hdr ={'Cache-Control': 'no-cache',
       'clave': clave_asignada,}
@@ -86,7 +86,7 @@ df_all = save_variables_vscode()
 print(df_all)
 ```
 
-Una vez que se ejecuta la función previa, la información sobre las variables (incluyendo su "Id") se guarda en `/api/variables.csv`. Cada una de las variables (excepto el rango desde 7392 hasta 7446), pueden consultarse mediante el siguiente código:
+En la última consulta, se contabilizaban 11,519 variables. Una vez que se ejecuta la función previa, la información sobre las variables (incluyendo su "Id") se guarda en `/api/variables.csv`. Cada una de las variables (excepto el rango desde 7392 hasta 7446), pueden consultarse mediante el siguiente código:
 
 ```
 # df_all = save_variables()
@@ -127,14 +127,14 @@ Todos los códigos previos están listos para ejecutarse desde el archivo `call_
 
 ## BCH_Webpage.qmd
 
-Proceso para descargar y procesar datos desde la página web del [Banco Central de Honduras (BCH)](www.bch.hn) usando Julia y R, teniendo como resultado un solo archivo. Esto permite obtener datos económicos en formato de serie, disponibles de manera individual en diferentes sitios de la página web, utilizando una consulta al archivo de Excel mediante librerías en R y modificando el formato original con procesos en Julia.
+Proceso para descargar y procesar datos desde la página web del [Banco Central de Honduras (BCH)](www.bch.hn) usando **Julia** y **R**, teniendo como resultado un solo archivo. Esto permite obtener datos económicos en formato de serie, disponibles de manera individual en diferentes sitios de la página web, utilizando una consulta al archivo de Excel mediante librerías en R y modificando el formato original con procesos en Julia.
 
 Para ejecutar este proceso desde una computadora, una vez descargados todos los archivos que contiene este repositorio, se necesitan tres cosas:
-1) Instalar [R](https://cran.r-project.org/bin/windows/base/) y los paquetes "readxl" y "rio"
-2) Instalar [Julia](https://julialang.org/downloads/) y luego instalar las librerías "CSV", "DataFrames", "Dates", "RCall" y "StatsBase"; y
-3) Abrir el archivo "BCH_Webpage.qmd"; en este caso, el directorio por default es "wd = @__DIR__", el mismo en el que se encuentran los archivos descargados
+1) Instalar [R](https://cran.r-project.org/bin/windows/base/) y los paquetes `readxl` y `rio`.
+2) Instalar [Julia](https://julialang.org/downloads/) y luego instalar las librerías `CSV`, `DataFrames`, `Dates`, `RCall` y `StatsBase`; y
+3) Abrir el archivo `BCH_Webpage.qmd`; en este caso, el directorio por default es `wd = @__DIR__`, el mismo en el que se encuentran los archivos descargados
 
-El procedimiento se ejecuta a través de los códigos en "BCH_Webpage.qmd"; si no se tiene instalado Quarto, puede ejecutarse directamente desde Julia, pegando estas líneas en el prompt (cambiando previamente la ruta en donde se encuentran las carpetas "data" y "functions" en la variable "wd"; por ejemplo, wd = "C:/Users/your_user/Downloads/BCH_Webpage-main".^[En las rutas por default, debe cambiarse "\" por "/".]):
+El procedimiento se ejecuta a través de los códigos en `BCH_Webpage.qmd`; si no se tiene instalado Quarto, puede ejecutarse directamente desde Julia, pegando estas líneas en el prompt (cambiando previamente la ruta en donde se encuentran las carpetas `data` y `functions` en la variable `wd`; por ejemplo, `wd = "C:/Users/your_user/Downloads/BCH_Webpage-main"`.^[En las rutas por default, debe cambiarse "\" por "/".]):
 
 ```
 using CSV,DataFrames,Dates,RCall,StatsBase
@@ -182,8 +182,47 @@ archivos = CSV.read(
 
 Las columnas de este archivo son las siguientes:
 
-* Sector: ruta inicial de los [archivos dinámicos](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos)
-* Path: siguiente ruta para los archivos dinámicos; por ejemplo, para las "estadísticas cambiarias", se tienen [varios submenús](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/estadisticas-cambiarias).
+* Sector: ruta inicial de los [archivos dinámicos](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos);
+* Path: siguiente ruta para los archivos dinámicos; por ejemplo, para las "estadísticas cambiarias", se tienen [varios submenús](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/estadisticas-cambiarias);
+* XLSXLinks: Ruta de lectura para los archivos de Excel;
+* Sector_abv: Abreviaturas del sector, estandarizado a cuatro caracteres:
+-- EC00: estadisticas-cambiarias;
+-- SPAG: sistema-de-pagos;
+-- TC00: tipo-de-cambio;
+-- OMA0: operaciones-de-mercado-abierto;
+-- P000: precios;
+-- M000: sector-monetario;
+-- R000: sector-real;
+-- ET00: sector-externo;
+-- FIS0: sector-fiscal;
+-- ENC0: resultados-de-encuestas
 
+La consolidación de todas las series económicas de estos grupos (con excepción de las operacionse de mercado abierto) se guardan en un solo archivo en `data/Reportes_Dinamicos.csv`:
 
+```
+df = join_dataframes()
+```
 
+Para cada serie, se tiene la siguiente información:
+
+* Fecha;
+* Nombre_Serie; y
+* Valor.
+
+Se agrega adicionalmente columnas con la información relacionada con el archivo de origen, detallada en `data/archivos.csv`.
+
+Debido a que el archivo de Operaciones de Mercado Abierto (serie 22) contiene dos fechas: Emisión y Vencimiento, no tiene el mismo formato del resto de las series previas, por lo que se guarda como un archivo separado  en `data/Reportes_Dinamicos_OMA.csv`:
+
+```
+df = get_oma()
+```
+
+Las columnas de este archivo son:
+
+* Código ISIN;
+* Fecha Emisión;
+* Fecha Vencimiento;
+* Número de Cupón; y
+* Tasa.
+
+Se agrega adicionalmente columnas con la información relacionada con el archivo de origen, detallada en `data/archivos.csv`.
