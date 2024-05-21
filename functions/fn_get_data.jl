@@ -1,3 +1,5 @@
+#### Funciones para ejecutar procesos del archivo "BCH_Webpage.qmd" ####
+
 function IPC()
     webpage = "https://www.bch.hn/estadisticos/GIE/LIBSeries%20IPC/Serie%20Mensual%20y%20Promedio%20Anual%20del%20%C3%8Dndice%20de%20Precios%20al%20Consumidor.xls"
     # Usando R para leer archivo xls
@@ -1360,8 +1362,8 @@ function get_data()
     Importaciones_Mercancias_Seccion_Anual(),
     Importaciones_Combustibles_Anual(),
     Importaciones_Bienes_Transformacion_Anual(),
-    BalCam()
-    ]
+    BalCam()]
+
 
 data = []
     for i in 1:size(funciones)[1]
@@ -1370,4 +1372,420 @@ data = []
         funciones[i])
     end
     data = vcat(data...)
+end
+
+
+#### Funciones para ejecutar procesos del archivo "PaginaWeb_Julia.qmd" ####
+
+function fecha_serie()
+    # Fecha - Serie
+    n_archivo = [2,3,8,29,60]
+    df_series_1 = DataFrames.DataFrame(
+        Fecha = "",
+        Nombre_Serie = "",
+        Valor = "",
+        Sector = "",
+        Path = "",
+        XLSXLinks = "",
+        Sector_abv = "",
+        Nombre = "",
+        Nombre_abv = "",
+        Code = "")
+    for i in 1:size(n_archivo)[1]
+        url = archivos.XLSXLinks[n_archivo[i]][3:end-2] # 91 archivos, no se encuentran [23,49,70]
+
+        # DataFrame from URL
+        df = DataFrames.DataFrame(
+            XLSX.readdata(
+            download(url),
+            1, 
+            "A1:Z1048576"), 
+            :auto
+            )
+
+        # Drop missing
+        df = @chain df begin
+            DataFrames.dropmissing!(_, DataFrames.names(_)[1])
+            DataFrames.dropmissing!(_, DataFrames.names(_)[2])
+            DataFrames.rename!(
+                _,
+                Symbol.(Vector(_[1,:])),
+                makeunique = true)[2:end,:]
+            DataFrames.select(
+                _,
+                DataFrames.Not(r"missing"));
+        end
+        df.Nombre_Serie .= DataFrames.names(df)[2]
+        df = df[:,[1,3,2]]
+        DataFrames.rename!(
+            df, 
+            Symbol(DataFrames.names(df)[1]) => "Fecha",
+            Symbol(DataFrames.names(df)[2]) => "Nombre_Serie",
+            Symbol(DataFrames.names(df)[3]) => "Valor")
+        df.Sector .= archivos.Sector[n_archivo[i]]
+        df.Path .= archivos.Path[n_archivo[i]]
+        df.XLSXLinks .= archivos.XLSXLinks[n_archivo[i]]
+        df.Sector_abv .= archivos.Sector_abv[n_archivo[i]]
+        df.Nombre .= archivos.Nombre[n_archivo[i]]
+        df.Nombre_abv .= archivos.Nombre_abv[n_archivo[i]]
+        df.Code .= archivos.Code[n_archivo[i]]
+        df_series_1 = vcat(df_series_1,df)
+        df = nothing
+    end
+    return df_series_1
+end
+
+
+function fecha_nombreserie_valor()
+    # Fecha - NombreSerie - Valor
+    n_archivo = [1,13,14,15,16,17,18,21,25,91]
+    df_series_2 = DataFrames.DataFrame(
+        Fecha = "",
+        Nombre_Serie = "",
+        Valor = "",
+        Sector = "",
+        Path = "",
+        XLSXLinks = "",
+        Sector_abv = "",
+        Nombre = "",
+        Nombre_abv = "",
+        Code = "")
+    for i in 1:size(n_archivo)[1]
+        url = archivos.XLSXLinks[n_archivo[i]][3:end-2] # 91 archivos, no se encuentran [23,49,70]
+
+        # DataFrame from URL
+        df = DataFrames.DataFrame(
+            XLSX.readdata(
+            download(url),
+            1, 
+            "A1:Z1048576"), 
+            :auto
+            )
+
+        # Drop missing
+        df = @chain df begin
+            DataFrames.dropmissing!(_, DataFrames.names(_)[1])
+            DataFrames.dropmissing!(_, DataFrames.names(_)[2])
+            DataFrames.rename!(
+                _,
+                Symbol.(Vector(_[1,:])),
+                makeunique = true)[2:end,:]
+            DataFrames.select(
+                _,
+                DataFrames.Not(r"missing"));
+        end
+        DataFrames.rename!(
+            df, 
+            Symbol(DataFrames.names(df)[1]) => "Fecha",
+            Symbol(DataFrames.names(df)[2]) => "Nombre_Serie",
+            Symbol(DataFrames.names(df)[3]) => "Valor")
+        df.Sector .= archivos.Sector[n_archivo[i]]
+        df.Path .= archivos.Path[n_archivo[i]]
+        df.XLSXLinks .= archivos.XLSXLinks[n_archivo[i]]
+        df.Sector_abv .= archivos.Sector_abv[n_archivo[i]]
+        df.Nombre .= archivos.Nombre[n_archivo[i]]
+        df.Nombre_abv .= archivos.Nombre_abv[n_archivo[i]]
+        df.Code .= archivos.Code[n_archivo[i]]
+        df_series_2 = vcat(df_series_2,df)
+        df = nothing
+    end
+    return df_series_2
+end
+
+
+function fecha_nombreseries_valor()
+    # Fecha - NombreSeries - Valor
+    n_archivo = [4,7,9,10,11,12,19,20,24,26,27,30]
+    df_series_3 = DataFrames.DataFrame(
+        Fecha = "",
+        Nombre_Serie = "",
+        Valor = "",
+        Sector = "",
+        Path = "",
+        XLSXLinks = "",
+        Sector_abv = "",
+        Nombre = "",
+        Nombre_abv = "",
+        Code = "")
+    for i in 1:size(n_archivo)[1]
+        # print(n_archivo[i])
+        url = archivos.XLSXLinks[n_archivo[i]][3:end-2] # 91 archivos, no se encuentran [23,49,70]
+
+        # DataFrame from URL
+        df = DataFrames.DataFrame(
+            XLSX.readdata(
+            download(url),
+            1, 
+            "A1:Z1048576"), 
+            :auto
+            )
+
+        # Drop missing
+        df = @chain df begin
+            DataFrames.dropmissing!(_, DataFrames.names(_)[1])
+            DataFrames.dropmissing!(_, DataFrames.names(_)[2])
+            DataFrames.rename!(
+                _,
+                Symbol.(Vector(_[1,:])),
+                makeunique = true)[2:end,:]
+            DataFrames.select(
+                _,
+                DataFrames.Not(r"missing"));
+        end
+
+        # Agregar nombre único
+        df.Nombre_Serie .= ""
+        for j in 2:(size(df)[2]-2)
+            df.Nombre_Serie = @. df.Nombre_Serie * "_" * string(df[:,j])
+        end
+        df = df[!,[1,end,end-1]]
+        DataFrames.rename!(
+            df, 
+            Symbol(DataFrames.names(df)[1]) => "Fecha",
+            Symbol(DataFrames.names(df)[2]) => "Nombre_Serie",
+            Symbol(DataFrames.names(df)[3]) => "Valor")
+        df.Sector .= archivos.Sector[n_archivo[i]]
+        df.Path .= archivos.Path[n_archivo[i]]
+        df.XLSXLinks .= archivos.XLSXLinks[n_archivo[i]]
+        df.Sector_abv .= archivos.Sector_abv[n_archivo[i]]
+        df.Nombre .= archivos.Nombre[n_archivo[i]]
+        df.Nombre_abv .= archivos.Nombre_abv[n_archivo[i]]
+        df.Code .= archivos.Code[n_archivo[i]]
+        df_series_3 = vcat(df_series_3,df)
+        df = nothing
+    end
+    return df_series_3
+end
+
+
+function fecha_series()
+    # Fecha - Series
+    n_archivo = [
+        5,6,28,31,32,33,34,35,36,37,
+        38,39,40,41,42,43,44,45,47,48,
+        50,51,52,53,54,55,56,57,58,59,
+        61,62,63,64,65,66,67,68,69,71,
+        72,73,74,75,76,77,78,79,80,81,
+        82,83,84,85,86,87,88,89,90]
+    df_series_4 = DataFrames.DataFrame(
+        Fecha = "",
+        Nombre_Serie = "",
+        Valor = "",
+        Sector = "",
+        Path = "",
+        XLSXLinks = "",
+        Sector_abv = "",
+        Nombre = "",
+        Nombre_abv = "",
+        Code = "")
+    for i in 1:size(n_archivo)[1]
+        # print(n_archivo[i])
+        url = archivos.XLSXLinks[n_archivo[i]][3:end-2] # 91 archivos, no se encuentran [23,49,70]
+
+        # DataFrame from URL
+        df = DataFrames.DataFrame(
+            XLSX.readdata(
+            download(url),
+            1, 
+            "A1:BA1048576"), 
+            :auto
+            )
+
+        # Drop missing
+        df = @chain df begin
+            DataFrames.dropmissing!(_, DataFrames.names(_)[1])
+            DataFrames.dropmissing!(_, DataFrames.names(_)[2])
+            DataFrames.rename!(
+                _,
+                Symbol.(Vector(_[1,:])),
+                makeunique = true)[2:end,:]
+            DataFrames.select(
+                _,
+                DataFrames.Not(r"missing"));
+        end
+
+        # Stack
+        df = DataFrames.stack(df,2:size(df)[2])
+        DataFrames.rename!(
+            df, 
+            Symbol(DataFrames.names(df)[1]) => "Fecha",
+            Symbol(DataFrames.names(df)[2]) => "Nombre_Serie",
+            Symbol(DataFrames.names(df)[3]) => "Valor")
+        df.Sector .= archivos.Sector[n_archivo[i]]
+        df.Path .= archivos.Path[n_archivo[i]]
+        df.XLSXLinks .= archivos.XLSXLinks[n_archivo[i]]
+        df.Sector_abv .= archivos.Sector_abv[n_archivo[i]]
+        df.Nombre .= archivos.Nombre[n_archivo[i]]
+        df.Nombre_abv .= archivos.Nombre_abv[n_archivo[i]]
+        df.Code .= archivos.Code[n_archivo[i]]
+        df_series_4 = vcat(df_series_4,df)
+        df = nothing
+    end
+    return df_series_4
+end
+
+
+function fecha_series_imae()
+    # Fecha - Series - IMAE
+    Actividades = [
+        "Agricultura, Ganadería, Silvicultura y Pesca",
+        "Minas y Canteras",
+        "Industria Manufacturera",
+        "Electricidad y Agua",
+        "Construcción",
+        "Comercio",
+        "Hoteles y Restaurantes",
+        "Transporte y Almacenamiento",
+        "Correo y Telecomunicaciones",
+        "Inter. Financiera, Seguros y Fondos de Pensiones",
+        "Otros Servicios"]
+    Tipo_Serie_Actividad = [
+        "Serie Original",
+        "Variación Acumulada",
+        "Variación Interanual"]
+    Serie_Imae = [
+        "IMAE_Serie Original_Indice",
+        "IMAE_Serie Original_Variación Acumulada",
+        "IMAE_Serie Original_Variación Interanual",
+        "IMAE_Serie Tendencia Ciclo_Indice",
+        "IMAE_Serie Tendencia_Ciclo_Variación Acumulada",
+        "IMAE_Serie Tendencia_Ciclo_Variación Interanual"]
+
+    nombres_so = @. Actividades * "_" * Tipo_Serie_Actividad[1]
+    nombres_va = @. Actividades * "_" * Tipo_Serie_Actividad[2]
+    nombres_vi = @. Actividades * "_" * Tipo_Serie_Actividad[3]
+    nombres = reduce(vcat,("Fecha",nombres_so,nombres_va,nombres_vi,Serie_Imae))
+    n_archivo = [46]
+    df_series_5 = DataFrames.DataFrame(
+        Fecha = "",
+        Nombre_Serie = "",
+        Valor = "",
+        Sector = "",
+        Path = "",
+        XLSXLinks = "",
+        Sector_abv = "",
+        Nombre = "",
+        Nombre_abv = "",
+        Code = "")
+    for i in 1:size(n_archivo)[1]
+        # print(n_archivo[i])
+        url = archivos.XLSXLinks[n_archivo[i]][3:end-2] # 91 archivos, no se encuentran [23,49,70]
+
+        # DataFrame from URL
+        df = DataFrames.DataFrame(
+            XLSX.readdata(
+            download(url),
+            1, 
+            "A1:BA1048576"), 
+            :auto
+            )
+
+        # Drop missing
+        df = @chain df begin
+            DataFrames.dropmissing!(_, DataFrames.names(_)[1])
+            DataFrames.dropmissing!(_, DataFrames.names(_)[2])
+            DataFrames.rename!(
+                _,
+                Symbol.(Vector(_[1,:])),
+                makeunique = true)[2:end,:]
+            DataFrames.select(
+                _,
+                DataFrames.Not(r"missing"));
+        end
+        for i in 1:size(DataFrames.names(df))[1]
+            DataFrames.rename!(
+                df, 
+                Symbol(DataFrames.names(df)[i]) .=> nombres[i])
+        end
+
+        # Stack
+        df = DataFrames.stack(df,2:size(df)[2])
+        DataFrames.rename!(
+            df, 
+            Symbol(DataFrames.names(df)[1]) => "Fecha",
+            Symbol(DataFrames.names(df)[2]) => "Nombre_Serie",
+            Symbol(DataFrames.names(df)[3]) => "Valor")
+        df.Sector .= archivos.Sector[n_archivo[i]]
+        df.Path .= archivos.Path[n_archivo[i]]
+        df.XLSXLinks .= archivos.XLSXLinks[n_archivo[i]]
+        df.Sector_abv .= archivos.Sector_abv[n_archivo[i]]
+        df.Nombre .= archivos.Nombre[n_archivo[i]]
+        df.Nombre_abv .= archivos.Nombre_abv[n_archivo[i]]
+        df.Code .= archivos.Code[n_archivo[i]]
+        df_series_5 = vcat(df_series_5,df)
+        df = nothing
+    end
+    return df_series_5
+end
+
+
+function join_dataframes()
+    # DataFrames a partir de diferentes formatos de archivo
+    df_series_1 = fecha_serie()
+    df_series_2 = fecha_nombreserie_valor()
+    df_series_3 = fecha_nombreseries_valor()
+    df_series_4 = fecha_series()
+    df_series_5 = fecha_series_imae()
+
+    # Unir DataFrames
+    df = vcat(df_series_1,df_series_2,df_series_3,df_series_4,df_series_5)
+    CSV.write(
+        wd * "data/Reportes_Dinamicos.csv",
+        delim = ";",
+        df)
+    df = CSV.read(
+        wd * "data/Reportes_Dinamicos.csv",
+        delim = ";",
+        DataFrames.DataFrame)
+    DataFrames.dropmissing!(df, DataFrames.names(df)[3])
+    df
+    CSV.write(
+        wd * "data/Reportes_Dinamicos.csv",
+        delim = ";",
+        df)
+    df = CSV.read(
+        wd * "data/Reportes_Dinamicos.csv",
+        delim = ";",
+        DataFrames.DataFrame)
+    return df
+end
+
+
+function get_oma()
+    archivo = 22
+    url = archivos.XLSXLinks[archivo][3:end-2] # 91 archivos, no se encuentran [23,49,70]
+
+    # DataFrame from URL
+    df = DataFrames.DataFrame(
+        XLSX.readdata(
+        download(url),
+        1, 
+        "A1:BA1048576"), 
+        :auto
+        )
+
+    # Drop missing
+    df = @chain df begin
+        DataFrames.dropmissing!(_, DataFrames.names(_)[1])
+        DataFrames.dropmissing!(_, DataFrames.names(_)[2])
+        DataFrames.rename!(
+            _,
+            Symbol.(Vector(_[1,:])),
+            makeunique = true)[2:end,:]
+        DataFrames.select(
+            _,
+            DataFrames.Not(r"missing"));
+    end
+    df.Sector .= archivos.Sector[archivo]
+    df.Path .= archivos.Path[archivo]
+    df.XLSXLinks .= archivos.XLSXLinks[archivo]
+    df.Sector_abv .= archivos.Sector_abv[archivo]
+    df.Nombre .= archivos.Nombre[archivo]
+    df.Nombre_abv .= archivos.Nombre_abv[archivo]
+    df.Code .= archivos.Code[archivo]
+    CSV.write(
+        wd * "data/Reportes_Dinamicos_OMA.csv",
+        delim = ";",
+        df)
+    return df
 end
