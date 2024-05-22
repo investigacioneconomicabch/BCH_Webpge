@@ -186,16 +186,16 @@ Las columnas de este archivo son las siguientes:
 * Path: siguiente ruta para los archivos dinámicos; por ejemplo, para las "estadísticas cambiarias", se tienen [varios submenús](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/estadisticas-cambiarias);
 * XLSXLinks: Ruta de lectura para los archivos de Excel;
 * Sector_abv: Abreviaturas del sector, estandarizado a cuatro caracteres:
--- EC00: estadisticas-cambiarias;
--- SPAG: sistema-de-pagos;
--- TC00: tipo-de-cambio;
--- OMA0: operaciones-de-mercado-abierto;
--- P000: precios;
--- M000: sector-monetario;
--- R000: sector-real;
--- ET00: sector-externo;
--- FIS0: sector-fiscal;
--- ENC0: resultados-de-encuestas
+1. EC00: estadisticas-cambiarias;
+2. SPAG: sistema-de-pagos;
+3. TC00: tipo-de-cambio;
+4. OMA0: operaciones-de-mercado-abierto;
+5. P000: precios;
+6. M000: sector-monetario;
+7. R000: sector-real;
+8. ET00: sector-externo;
+9. FIS0: sector-fiscal;
+10 ENC0: resultados-de-encuestas
 
 La consolidación de todas las series económicas de estos grupos (con excepción de las operacionse de mercado abierto) se guardan en un solo archivo en `data/Reportes_Dinamicos.csv`:
 
