@@ -44,6 +44,8 @@ def get_df(id):
     df = pl.from_pandas(df,include_index=True
         ).with_columns(
             pl.col("Fecha").cast(pl.Date))
+    df = df.sort("Fecha")
+    df = df.unique(maintain_order=True)
     return df
 
 def get_plot(id):
