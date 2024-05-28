@@ -1,6 +1,6 @@
 ---
-title: 'BCH_API.jl'
-author: stephenbnicar
+title: 'BCH_API_Julia'
+author: Elvis Casco
 execute:
   echo: true
 format:
@@ -8,60 +8,1386 @@ format:
       code-fold: true
       code-tools: true
       toc: true
-      echo: false
+      echo: true
 keep-ipynb: true
 jupyter: julia-1.10
 ---
 
+En este proceso se explica la forma en que pueden descargarse los datos disponibles en la [API](https://bchapi-am.developer.azure-api.net/) del Banco Central de Honduras (BCH), utilizando Julia.
+
+# Acceso a los Datos
+
+Una vez que se crea el registro de usuario (usar el botón "Suscribirse" en el [sitio web](https://bchapi-am.developer.azure-api.net/), puede verse el procedimiento de registro e inicio de sesión en [YouTube](https://www.youtube.com/watch?v=8ZBllMSsKw4)), se necesita obtener una clave (ver explicación en [YouTube](https://www.youtube.com/watch?v=mV90s74OCfc)), ejecutando una consulta al catálogo de indicadores. Favor sustituir en el código la clave actual por su clave asignada.
+
+Para conocer los datos disponibles, se debe ejecutar una consulta al catálogo de indicadores, que contiene información sobre las series disponibles:
+
+* Nombre (código)
+* Descripción
+* Periodicidad
+* Grupo
+* Correlativo del Grupo
+
 ```{julia}
 #import Pkg; Pkg.add("IMFData")
-using Azure, CSV, DataFrames, DataFramesMeta, HTTP, JSON
+using Azure,Chain,CSV,DataFrames,DataFramesMeta,Dates,HTTP,JSON,JSON3
 
 wd = @__DIR__
+clave = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
 ```
+
+```{julia}
+function count_groups(x)
+  # Función para contar separaciones de grupo tomando caracter "-".
+  c = 5
+  @inbounds for i in eachindex(x)
+      if ismissing(x[i])
+          c -= 1
+      end
+  end
+  return c
+end
+
+function count_description(x)
+  # Función para contar separaciones de indicador tomando caracter "-".
+  c = 8
+  @inbounds for i in eachindex(x)
+      if ismissing(x[i])
+          c -= 1
+      end
+  end
+  return c
+end
+```
+
+# Formatos de consulta
+
+## 1. Consulta de catálogo de indicadores
+
+Consulta el catálogo de indicadores publicados mediante la Web-API, asimismo, se obtiene el detalle de la información del indicador: Id, nombre, descripción, grupo, correlativo de grupo y periodicidad. Ningún parámetro es obligatorio.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores[?formato][&nombre][&descripcion][&periodicidad][&ordenamiento][&grupo][&correlativogrupo][&omitir][&reciente]`
+
+Este es el listado de todos los indicadores disponibles:
+
+```{julia}
+function get_indicators(key)
+  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json"
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  df = df[!,[:Id,:Nombre,:Descripcion,:CorrelativoGrupo,:Grupo,:Periodicidad]]
+end
+
+function get_indicators_filter(key,url)
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  df = df[!,[:Id,:Nombre,:Descripcion,:CorrelativoGrupo,:Grupo,:Periodicidad]]
+end
+```
+
+```{julia}
+key = clave
+df = get_indicators(key)
+df = hcat(
+  df,
+  DataFrames.select(
+    df, 
+    :Descripcion =>
+      ByRow(x -> get.(Ref(split(x, '-')), 1:8, missing)) =>
+      [:Niv_Descr_1,:Niv_Descr_2,:Niv_Descr_3,:Niv_Descr_4,:Niv_Descr_5,:Niv_Descr_6,:Niv_Descr_7,:Niv_Descr_8]))
+DataFrames.transform!(
+  df, 
+  AsTable(Between(:Niv_Descr_1,:Niv_Descr_8)) => ByRow(count_description) => :Niv_Descr)
+df = hcat(
+  df,
+  DataFrames.select(
+    df, 
+    :Grupo =>
+      ByRow(x -> get.(Ref(split(x, '-')), 1:5, missing)) =>
+      [:Niv_Gr_1,:Niv_Gr_2,:Niv_Gr_3,:Niv_Gr_4,:Niv_Gr_5]))
+DataFrames.transform!(
+  df, 
+  AsTable(Between(:Niv_Gr_1,:Niv_Gr_5)) => ByRow(count_groups) => :Niv_Gr)
+CSV.write(
+    wd .* "/api/variables_julia.csv",
+    delim = ";",
+  df);
+```
+
+Consultar solamente los indicadores filtrados por nombre (puede usarse partes del nombre), por ejemplo, "ESR":
+
+```{julia}
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json&nombre=ESR"
+get_indicators_filter(key,url)
+```
+
+Esto aplica para el resto de los campos; un ejemplo de consulta con varios filtros:
+
+```{julia}
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json&nombre=PIBA&correlativogrupo=10&Descripcion=Constantes"
+get_indicators_filter(key,url)
+```
+
+Nota: tomar en cuenta para todas las consultas por filtro que si la ruta no existe, el código genera un error.
+
+## 2. Consulta cifras por Id de indicador
+
+Consulta las cifras para un indicador en específico obtenido por el Id del indicador. El parámetro "Id" es un campo obligatorio el resto de criterios quedan a consideración del usuario. Si no se especifican parámetros, se obtendrán todos los datos disponibles para el indicador requerido, lo que podría demorar la obtención de la consulta, en ese sentido lo que se sugiere afinar la búsqueda a los criterios requeridos.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/cifras[?formato][&fechaInicio][&fechaFinal][&valorMinimo][&valorMaximo][&ordenamiento][&omitir][&reciente]`
+
+```{julia}
+function get_data_indicator(key,id)
+  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" *  string(id) * "/cifras"
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
+  df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
+  df = df[!,[:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
+  DataFrames.sort!(df,[:Fecha],rev=true)
+  return df
+end
+
+function get_data_indicator_filter(key,url,id)
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
+  df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
+  df = df[!,[:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
+  DataFrames.sort!(df,[:Fecha],rev=true)
+  return df
+end
+
+function get_data_indicators(key,ids)
+  ids = collect(ids)
+  df = DataFrames.DataFrame()
+  for i in ids
+    df = vcat(df,get_data_indicator(key,i))
+  end
+  return df
+end
+```
+
+Consultar solo un indicador:
+
+```{julia}
+id = 5
+get_data_indicator(key,id)
+```
+
+Consultar varios indicadores, usando rangos:
+
+```{julia}
+ids = 1:10
+get_data_indicators(key,ids)
+```
+
+Consultar varios indicadores, usando IDs no contínuas:
+
+```{julia}
+ids = 1,7,25,36
+get_data_indicators(key,ids)
+```
+
+Consultar solo un indicador, usando filtros:
+
+```{julia}
+id = 36
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/cifras?FechaInicio=2023-03-01&FechaFinal=2023-09-01"
+get_data_indicator_filter(key,url,id)
+```
+
+## 3. Consulta Indicadores por grupo
+
+Consulta un conjunto de indicadores publicados mediante la Web-API por grupo de indicadores. El parámetro "grupo" es un campo obligatorio.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/{grupo}[?formato]`
 
 
 ```{julia}
-clave_asignada = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
-clave_asignada = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
-# url = "https://bchapi-am.azure-api.net/api",name="clave_asignada",type="header"
-# hdr ={'Cache-Control': 'no-cache',
-#       'clave': clave_asignada,}
-# key = clave_asignada
-# res = HTTP.get(url);
-# dfmeta = get_info(url, hdr)
-# header = hdr
-# req = urllib.request.Request(url, headers=header)
+function get_groups(key)
+  url = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  DataFrames.sort!(df,:CorrelativoGrupo)
+  df = df[!,[:Id,:Descripcion,:Periodicidad,:Grupo,:Nombre,:CorrelativoGrupo]]
+  return df
+end
+
+function get_groups_filter(key,url)
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  DataFrames.sort!(df,:Id)
+  return df
+end
+```
+
+Consultar lista de todos los indicadores:
+
+```{julia}
+get_groups(key)
+```
+
+Consultar componentes de grupo por filtro (en este caso debe especificarse el nombre completo del grupo, de acuerdo con la tabla anterior; caso contrario, se generan errores):
+
+```{julia}
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/ESR-PIBT-PROD-OG-CONST?formato=Json"
+get_groups_filter(key,url)
+```
+
+## 4. Consulta cifras por grupo de indicadores
+
+Consultar las cifras de todos los indicadores por grupo de indicadores. El parámetro "grupo" es un campo obligatorio.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/{grupo}/cifras[?formato]`
+
+Debe especificarse el nombre completo del (los) grupo(s), de acuerdo con la tabla anterior; caso contrario, se generan errores.
+
+```{julia}
+function get_data_group(key,group)
+  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" *  group * "/cifras"
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
+  df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
+  df[!,:Grupo] .= group
+  df = df[!,[:Grupo,:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
+  DataFrames.sort!(df,[:IndicadorId,:Fecha],rev=[false,true])
+  return df
+end
+
+function get_data_groups(key,groups)
+  df = DataFrames.DataFrame()
+  for i in 1:size(groups)[1]
+    df = vcat(df,get_data_group(key,groups[i]))
+  end
+  return df
+end
+```
+
+Consultar cifras de un solo grupo:
+
+```{julia}
+group = "ESR-PIBT-PROD-OG-CONST"
+get_data_group(key,group)
+```
+
+Consultar cifras de varios grupos:
+
+```{julia}
+groups = ["ESR-PIBT-PROD-OG-CONST","ESE-PII-01"]
+get_data_groups(key,groups)
+```
+
+## 5. Consulta por fecha de registro
+
+Consulta el valor de un indicador para una fecha específica. Todos los parámetros son obligatorios.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/cifras/{fecha}[?formato]`
+
+```{julia}
+function get_data_date(key,id,date)
+  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/cifras/" * date * "?formato=JSON"
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
+  df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
+  df[!,:Grupo] .= group
+  df = df[!,[:Grupo,:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
+  DataFrames.sort!(df,[:IndicadorId,:Fecha],rev=[false,true])
+  return df
+end
+```
+
+Consultar solamente un Id y una fecha:
+
+```{julia}
+id = 1
+date = "2023-03-01"
+get_data_date(key,id,date)
+```
+
+## 6. Consulta de información por Id de indicador
+
+Consulta el detalle de la información del indicador: Id, nombre, descripción, grupo, correlativo de grupo y periodicidad. El parámetro "Id" es un campo obligatorio.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/cifras/{fecha}[?formato]`
+
+```{julia}
+function get_info_id(key,id)
+  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "?formato=JSON"
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  df = df[!,[:Id,:Nombre,:Descripcion,:Periodicidad,:CorrelativoGrupo,:Grupo]]
+  return df
+end
+
+function get_info_ids(key,ids)
+  ids = collect(ids)
+  df = DataFrames.DataFrame()
+  for i in ids
+    df = vcat(df,get_info_id(key,i))
+  end
+  return df
+end
+```
+
+Consultar solamente un Id:
+
+```{julia}
+id = 1
+get_info_id(key,id)
+```
+
+Consultar varios Ids, rango:
+
+```{julia}
+ids = 1:3
+get_info_ids(key,ids)
+```
+
+Consultar varios Ids, números:
+
+```{julia}
+ids = 1,7,25
+get_info_ids(key,ids)
+```
+
+## 7. Conteo de cifras para cada indicador
+
+Consulta los indicadores publicados mediante la Web-API devolviendo el conteo de registros disponibles para cada uno. Todos los filtros son opcionales.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores/conteos[?formato][&nombre][&descripcion][&periodicidad][&ordenamiento][&conteoMinimo][&conteoMaximo][&ordenamientoConteo][&grupo][&correlativogrupo][&omitir][&reciente]`
+
+Esta forma de consulta permite filtrar por valores incompletos de los elementos nombre, descripcion y grupo.
+
+```{julia}
+function get_count_gids(key,url)
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  df = df[!,[:Id,:Nombre,:Descripcion,:Periodicidad,:CorrelativoGrupo,:Grupo,:Conteo]]
+  return df
+end
+```
+
+Filtro por nombre del indicador:
+
+```{julia}
+filtro = "EC-"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&nombre=" * filtro
+get_count_gids(key,url)
+```
+
+Filtro por descripción del indicador:
+
+```{julia}
+filtro = "cambio"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&descripcion=" * filtro
+get_count_gids(key,url)
+```
+
+Filtro por periodicidad del indicador:
+
+- Diario;
+- Mensual;
+- Trimestral; y
+- Anual.
+
+```{julia}
+filtro = "Mensual"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&periodicidad=" * filtro
+get_count_gids(key,url)
+```
+
+Filtro por grupo del indicador:
+
+```{julia}
+filtro = "ODA"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&grupo=" * filtro
+get_count_gids(key,url)
+```
+
+Filtro por correlativo de grupo del indicador:
+
+```{julia}
+filtro = 10
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&correlativogrupo=" * string(filtro)
+get_count_gids(key,url)
+```
+
+## 8. Conteo de cifras para un indicador
+
+Consulta el conteo de registros disponibles para un indicador en específico. El parámetro "Id" es un campo obligatorio.
+
+El formato para realizar una consulta personalizada es el siguiente:
+
+`https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/conteos[?formato]`
+
+```{julia}
+function get_count_id1(key,id)
+  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/conteos?formato=Json"
+  usr = Dict("clave" => key)
+  js = HTTP.get(url; headers = usr)
+  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
+  df = df[!,[:Id,:Nombre,:Descripcion,:Periodicidad,:CorrelativoGrupo,:Grupo,:Conteo]]
+  return df
+end
+```
+
+```{julia}
+id = 110
+get_count_id1(key,id)
+```
+
+# Grupos
+
+Las variables están categorizadas en 8 grupos principales y 54 subgrupos (ESE-BP-01 y ESE-CEB-01 contienen variables de periodicidad anual o trimestral, y EM-TPM-01 tiene variables de periodicidad diaria o mensual). La nomenclatura utilizada permite dividir estos en un máximo de cinco niveles, tomando en cuenta el separador (-). Se explicarán los mismos a continuacion, ordenando de acuerdo al número de niveles (número de subgrupos).
+
+```{julia}
+df = get_groups(key)
+df_groups = @chain df begin
+  DataFrames.groupby(
+    # [:Grupo,:CorrelativoGrupo,:Periodicidad])
+    # [:Grupo])
+    [:Grupo,:Periodicidad])
+  DataFrames.combine(
+    nrow => :Conteo)
+end
+DataFrames.sort!(df_groups,:Conteo,rev=true)
+df_groups = hcat(
+  df_groups,
+  DataFrames.select(
+    df_groups, 
+    :Grupo =>
+      ByRow(x -> get.(Ref(split(x, '-')), 1:5, missing)) =>
+      [:Gr1,:Gr2,:Gr3,:Gr4,:Gr5]))
+CSV.write(
+    wd .* "/api/grupos_julia.csv",
+    delim = ";",
+  df_groups);
+```
+
+Todos los grupos pueden clasificarse en al menos dos subgrupos:
+
+```{julia}
+df_groups
+DataFrames.describe(
+  df_groups, 
+  :nmissing, 
+  length => :length,
+  cols = [:Gr1,:Gr2,:Gr3,:Gr4,:Gr5])
+DataFrames.transform!(
+  df_groups, 
+  AsTable(Between(:Gr1,:Gr5)) => ByRow(count_groups) => :Niv_Gr)
+DataFrames.sort!(df_groups,[:Grupo,:Niv_Gr],rev=[true,true])
+```
+
+Los 8 grupos principales mencionados permiten consolidar los archivos de acuerdo con el origen de los datos en la página web del BCH, que en su mayoría pueden consultarse en los reportes dinámicos. A su vez, estos grupos pueden subdividirse en 25 subgrupos:
+
+## EOM = Estadísticas de Operaciones Monetarias
+
+### OMA = Operaciones de Mercado Abierto**
+
+Cuatro niveles de agregación:
+
+* 01 = Tasas de Rendimiento Diario de Valores Gubernamentales
+
+```{julia}
+filtro = "EOM-OMA-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+* 02 = Créditos (Niv_Descr_4 = 1-3) e Inversiones (Niv_Descr_4 = 4-6): Monto, Número de Solicitudes y Tasa
+
+```{julia}
+filtro = "EOM-OMA-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+* 03 = Monto, Número de Operaciones y Tasa
+
+```{julia}
+filtro = "EOM-OMA-03"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+* 04 = Monto, Número de Operaciones y Tasa (Dólares - Lempiras)
+
+```{julia}
+filtro = "EOM-OMA-04"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+## ESR = Estadísticas del Sector Real
+
+### COU = Cuadro de Oferta y Utilización
+
+Detalla la interacción del producto con la actividad (el detalle se toma de acuerdo con la estructura de la columna "Nombre"). Para conocer la estructura de las estadísticas derivadas de este cuadro, consultar en la [página web del BCH](https://www.bch.hn/estadisticas-y-publicaciones-economicas/sector-real/cuentas-nacionales-anuales-base-2000/cuadro-oferta-y-utilizacion).
+
+El orden está de acuerdo con el Nivel de Descripción 2 (Niv_Descr_2) y Nivel de Descripción 3 (Niv_Descr_3) de la columna Nombre, para los casos de:
+
+* VALOR BRUTO DE PRODUCCIÓN: En el cuadro original, las filas son los productos a un nivel de dos dígitos de la Nomenclatura de Productos de Honduras (NPH) y las columnas son las actiivades económicas tomando en cuenta la Nomenclatura de Actividades Económicas de Honduras (NAEH).
+
+* CONSUMO INTERMEDIO: En el cuadro original, las filas son los productos a un nivel de dos dígitos de la Nomenclatura de Productos de Honduras (NPH) y las columnas son las actividades económicas tomando en cuenta la Nomenclatura de Actividades Económicas de Honduras (NAEH).
+
+* VALOR AGREGADO: En el cuadro original, las filas son los elementos indispensables para calcular el Valor Agregado Bruto, VAB (Remuneración de los Asalariados, Impuestos sobre la Producción y las Importaciones, Subvenciones, Excedente de Explotación, Ingreso Mixto y Consumo de Capital Fijo) y las columnas son las actiivades económicas tomando en cuenta la Nomenclatura de Actividades Económicas de Honduras (NAEH).
+
+* OFERTA: En el cuadro original, las filas son los productos a un nivel de dos dígitos de la Nomenclatura de Productos de Honduras (NPH) y las columnas son los componentes de la Oferta Agregada a Precios de Comprador (Producción, Importaciones CIF, Ajuste CIF/FOB, Impuestos y Subvenciones a los Productos y Márgenes de Distribución).
+
+* UTILIZACIÓN: En el cuadro original, las filas son los productos a un nivel de dos dígitos de la Nomenclatura de Productos de Honduras (NPH) y las columnas son los componentes de la Utilización Agregada a Precios de Comprador (Consumo Intermedio, Exportciones FOB, Gasto de Consumo Final y Formación Bruta de Capital).
+
+Cada uno de estos detalles corresponde a una hoja de Excel en el archivo anual correspondiente.
+
+Tomar en cuenta que, para realizar el cálculo del VAB por NAEH, se debe sumar las columnas de Valor Bruto de Producción y restar las de Consumo Intermedio; adicionalmente, como los datos correspondientes a Impuestos sobre los Productos y los Márgenes de Distribución solamente se encuentran a nivel de NPH, no se puede tener un VAB total que se obtenga por suma de VAB a nivel de actividad individual, en vista que debe restarse las de Subvenciones a los productos, mismas que se encuentran en el Cuadro de Oferta solamente a nivel de NPH. Esta forma de obtener el VAB se conoce como el cálculo del PIB por el enfoque del Ingreso.
+
+Como la Oferta y Utilización están detalladas a nivel de NPH, el VAB por NPH a partir de los dos detalles previos, se puede obtener por dos métodos:
+
+* Suma de Producción + Impuestos - Subvenciones a los Productos + Márgenes de Distribución (Oferta) - Consumo Intermedio (Utilización) => PIB por el enfoque de la Produccion.
+* Exportaciones FOB + Gasto de Consumo Final + Formación Bruta de Capital (Utilización) - Importaciones CIF - Ajuste CIF/FOB (Oferta) => PIB por el enfoque del Gasto.
+
+```{julia}
+filtro = "ESR-COU-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### CCI = Clasificación Cruzada Industria
+
+Para conocer la estructura de las estadísticas derivadas de este cuadro, consultar en la [página web del BCH](https://www.bch.hn/estadisticas-y-publicaciones-economicas/sector-real/cuentas-nacionales-anuales-base-2000/clasificacion-cruzada-industria-sector-institucional).
+
+El archivo contiene 3 hojas, que pueden filtrarse de acuerdo con el Nivel de Descripción 1 (Niv_Descr_1) de la variable:
+
+* Producción Bruta
+* Consumo Intermedio
+* Valor Agregado
+
+Los cuadros en cada hoja contienen los valores a nivel de Industria en las filas y a nivel de Sector Institucional en las columnas.
+
+Debido a que el VAB implica tomar en cuenta impuestos y subvenciones a nivel de NPH, no es posible obtener el cálculo de esta variable por suma a partir de los cuadros del CCI (ver explicación en el apartado del COU).
+
+```{julia}
+filtro = "ESR-CCI-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### VAB = Valor Agregado Bruto
+
+#### Valor y Variación, Corrientes y Constantes, por NAEH
+
+```{julia}
+filtro = "ESR-VAB-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### Precio y Variación, Corrientes y Constantes, por NAEH
+
+```{julia}
+filtro = "ESR-VAB-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+Notar que aquí el Nivel de Descripción 6 (Niv_Descr_6) no es una buena opción de desagregación, puesto que los componentes son "Actividad Económica" y “Productos Alimenticios, Bebidas y Tabaco”; esta última está detallada en mayor grado en el Nivel de Descripción 7 (Niv_Descr_7).
+
+### PIBA = PIB Anual
+
+#### Valores Corrientes y Constantes, por Actividad Económica
+
+La información se encuentra en la viñeta "Sector Real" de la [página web del BCH](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/sector-real).
+
+* Rama de Actividad Económica (RAE)
+* Series Agregadas
+* Variación RAE
+* Variación Series Agregadas
+
+```{julia}
+filtro = "ESR-PIBA-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### Precios y Variación, por Componente del Gasto
+
+```{julia}
+filtro = "ESR-PIBA-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+Tipo de Valores ("Niv_Descr_5"):
+
+* Corrientes
+* Constantes
+
+#### Precios y Variación, por Componente del Ingreso
+
+```{julia}
+filtro = "ESR-PIBA-03"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+Componente del Ingreso:
+
+* Remuneración de los asalariados
+* Impuestos netos de subvenciones sobre la producción y las importaciones
+* Excedente de Explotación bruto
+* Ingreso Mixto bruto
+* Producto Interno Bruto (pm)
+
+#### Ingreso Nacional, PIB, PNB
+
+```{julia}
+filtro = "ESR-PIBA-04"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+* Dólares
+* Lempiras
+
+### PIBT = PIB Trimestral
+
+Lo que se detalla a continuación se obtiene a partir de los datos del [Portal de Consulta del Sistema de Cuentas Trimestrales](https://sisee.bch.hn/SCNT/Login.aspx?ReturnUrl=%2fSCNT%2fPortalPrincipal.aspx).
+
+#### PROD = PIB Trimestral por el Enfoque de la Producción
+
+CorrelativoGrupo:
+
+1. Agricultura Ganaderí­a Caza Silvicultura y Pesca 
+2. Explotación de Minas y Canteras
+3. Industrias Manufactureras
+4. Electricidad y Distribución de Agua
+5. Construcción
+6. Comercio Reparación de Vehí­culos Automotores Motocicletas Efectos Personales y Enseres Domésticos Hoteles y Restaurantes
+7. Transporte y Almacenamiento
+8. Comunicaciones
+9. Intermediación Financiera
+10. Propiedad de Vivienda Actividades Inmobiliarias y Empresariales
+11. Administración Pública y Defensa Planes de Seguridad Social de Afiliación Obligatoria
+12. Servicios de Enseñanza Servicios Sociales y de Salud
+13. Servicios Comunitarios Sociales y Personales
+14. Menos Servicios de Intermediación Financiera Medidos Indirectamente (SIFMI)
+15. Valor Agregado Bruto a precios básicos
+16. Más Impuestos netos de subvenciones sobre la producción y las importaciones
+17. Producto Interno Bruto a precios de mercado
+
+
+##### OG-CONST = PIB Trimestral por el Enfoque de la Producción, Serie Original, Valores Constantes
+
+```{julia}
+filtro = "ESR-PIBT-PROD-OG-CONST"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+##### OG-CORR = PIB Trimestral por el Enfoque de la Producción, Serie Original, Valores Corrientes
+
+```{julia}
+filtro = "ESR-PIBT-PROD-OG-CORR"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+##### DES-CONST = PIB Trimestral por el Enfoque de la Producción, Serie Desestacionalizada, Valores Constantes
+
+```{julia}
+filtro = "ESR-PIBT-PROD-DES-CONST"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+##### DES-CORR = PIB Trimestral por el Enfoque de la Producción, Serie Desestacionalizada, Valores Corrientes
+
+```{julia}
+filtro = "ESR-PIBT-PROD-DES-CORR"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### GAST = PIB Trimestral por el Enfoque del Gasto
+
+CorrelativoGrupo:
+
+1.	Gastos de Consumo Final
+2.	Sector Privado
+3.	Sector PÃºblico
+4.	FormaciÃ³n Bruta de Capital
+5.	Exportaciones de Bienes y Servicios
+6.	ImportaciÃ³n de Bienes y Servicios
+7.	Producto Interno Bruto a precios de mercado
+
+
+##### OG-CONST = PIB Trimestral por el Enfoque de del Gasto, Serie Original, Valores Constantes
+
+```{julia}
+filtro = "ESR-PIBT-GAST-OG-CONST"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+##### OG-CORR = PIB Trimestral por el Enfoque de del Gasto, Serie Original, Valores Corrientes
+
+```{julia}
+filtro = "ESR-PIBT-GAST-OG-CORR"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+##### DES-CONST = PIB Trimestral por el Enfoque del Gasto, Serie Desestacionalizada, Valores Constantes
+
+```{julia}
+filtro = "ESR-PIBT-GAST-DES-CONST"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+##### DES-CORR = PIB Trimestral por el Enfoque del Gasto, Serie Desestacionalizada, Valores Corrientes
+
+```{julia}
+filtro = "ESR-PIBT-GAST-DES-CORR"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### TDC = PIB Trimestral, Tasas de Crecimiento, Valores Ajustados
+
+```{julia}
+filtro = "ESR-PIBT-TDC-Valores"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### ODA = Oferta y Demanda Agregada
+
+La estructura de estas variables puede verse en el [INE](https://view.officeapps.live.com/op/view.aspx?src=https%3A%2F%2Fine.gob.hn%2Fv4%2Fwp-content%2Fuploads%2F2023%2F06%2F7.1.5-Oferta-y-demanda-global-millones-de-lempiras-corrientes-2017-2021.xlsx&wdOrigin=BROWSELINK).
+
+#### Oferta Global
+
+Los números corresponden al correlativo de acuerdo con el cuadro citado.
+
+**Niv_Descr_2 = VALOR AGREGADO BRUTO; Niv_Descr_3:**
+
+3. AGRICULTURA, GANADERÍA, CAZA, SILVICULTURA Y PESCA (A PRECIOS BÁSICOS)
+4. EXPLOTACIÓN DE MINAS Y CANTERAS (A PRECIOS BÁSICOS)
+5. INDUSTRIA MANUFACTURERA (A PRECIOS BÁSICOS)
+6. CONSTRUCCIÓN (A PRECIOS BÁSICOS)
+7. COMERCIO, HOTELES Y RESTAURANTES (A PRECIOS BÁSICOS)
+9. MENOS: SERVICIOS DE INTERMEDIACIÓN FINANCIERA MEDIDOS INDIRECTAMENTE (A PRECIOS BÁSICOS)
+
+Niv_Descr_4 corresponde a:
+
+* EN MILLONES DE LEMPIRAS CONSTANTES
+* EN MILLONES DE LEMPIRAS CORRIENTES
+* VARIACIONES RELATIVAS CONSTANTE
+* VARIACIONES RELATIVAS CORRIENTES
+
+**Niv_Descr_2 = ""; Niv_Descr_3 = ""; Niv_Descr_4:**
+
+8. OTROS SERVICIOS (A PRECIOS BÁSICOS)
+10. IMPUESTOS NETOS DE SUBVENCIONES SOBRE LA PRODUCCIÓN Y LAS IMPORTACIONES
+11. PRODUCTO INTERNO BRUTO A PRECIOS DE MERCADO
+12. IMPORTACIONES DE BIENES Y SERVICIOS C.I.F.
+1. OFERTA GLOBAL
+13. TOTAL VALOR AGREGADO BRUTO A PRECIOS BáSICOS
+14. VALOR AGREGADO BRUTO
+2. VALOR AGREGADO BRUTO A PRECIOS BÁSICOS
+
+Niv_Descr_5 corresponde a:
+
+* EN MILLONES DE LEMPIRAS CONSTANTES
+* EN MILLONES DE LEMPIRAS CORRIENTES
+* VARIACIONES RELATIVAS CONSTANTE
+* VARIACIONES RELATIVAS CORRIENTES
+
+#### Demanda Global
+
+**Niv_Descr_2 = ""; Niv_Descr_3 = ""; Niv_Descr_4:**
+
+1. DEMANDA GLOBAL
+2. DEMANDA INTERNA
+3. GASTOS DE CONSUMO FINAL
+4. INVERSIÓN INTERNA BRUTA
+5. FORMACIÓN BRUTA DE CAPITAL FIJO
+6. VARIACIÓN DE EXISTENCIAS
+7. DEMANDA EXTERNA
+8. EXPORTACIÓN DE BIENES Y SERVICIOS F.O.B.
+
+Niv_Descr_5, de acuerdo con lo anterior, es:
+
+* EN MILLONES DE LEMPIRAS CONSTANTES
+* EN MILLONES DE LEMPIRAS CORRIENTES
+* VARIACIONES RELATIVAS CONSTANTE
+* VARIACIONES RELATIVAS CORRIENTES
+
+**Variables con valores en Niv_Descr_2 y Niv_Descr_3, corresponde a las siguientes series:**
+
+3. GASTOS DE CONSUMO FINAL
+5. FORMACIÓN BRUTA DE CAPITAL FIJO
+
+De Niv_Descr_3 se obtiene:
+
+a. SECTOR PRIVADO
+b. SECTOR PÚBLICO
+
+Niv_Descr_4, de acuerdo con lo anterior, es:
+
+* EN MILLONES DE LEMPIRAS CONSTANTES
+* EN MILLONES DE LEMPIRAS CORRIENTES
+* VARIACIONES RELATIVAS CONSTANTE
+* VARIACIONES RELATIVAS CORRIENTES
+
+```{julia}
+filtro = "ESR-ODA-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### IMAE = Índice Mensual de la Actividad Económica
+
+Las actividades (Niv_Descr_4) son:
+
+1. Agricultura, Ganaderia, Silvicultura y Pesca
+2. Minas y Canteras
+3. Industria Manufacturera
+4. Electricidad y Agua
+5. Construcción
+6. Comercio
+7. Hoteles y Restaurantes
+8. Transporte y Almacenamiento
+9. Correo y Telecomunicaciones
+10. Inter. Financiera, Seguros y Fondos de Pensiones
+11. Otros Servicios
+12. Serie Original
+13. Tendencia Ciclo
+
+El tipo de valor (Niv_Descr_5) de dichas variables es:
+
+* Índice
+* Acumulada
+* Interanual
+
+```{julia}
+filtro = "ESR-IMAE-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+## ESE = Estadísticas del Sector Externo
+
+### DE = Deuda Externa
+
+#### 01 - Deudor
+
+```{julia}
+filtro = "ESE-DE-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 02 - Acreedor
+
+```{julia}
+filtro = "ESE-DE-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### 03 - Institución
+
+Las instituciones son:
+
+* Banco Central
+* Gobierno general
+* Otras sociedades financieras
+* Otros Sectores
+* Saldo bruto de la deuda externa
+* Sociedades no financieras
+
+Las cuentas son: 
+
+* Asignación de Derechos especiales de giro
+* Créditos y anticipos comerciales
+* Moneda y depósitos
+* Otros pasivos de deuda
+* Préstamos
+* Tí­tulos de deuda
+* Saldo bruto de la deuda externa
+
+```{julia}
+filtro = "ESE-DE-03"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### 04 - Pagos que vencen en un año o menos
+
+```{julia}
+filtro = "ESE-DE-04"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+Por institución:
+
+* Gobierno general
+* Banco Central
+* Otros Sectores
+* Otras sociedades financieras
+* Sociedades no financieras
+* Deuda externa total a corto plazo
+
+Por plazos:
+
+* A corto plazo según el vencimiento original
+* A largo plazo exigible dentro de un año o antes
+* Deuda externa total a corto plazo
+
+Por Cuenta:
+
+* Asignación de Derechos especiales de giro
+* Moneda y depósitos
+* Tí­tulos de deuda
+* Préstamos
+* Créditos y anticipos comerciales
+* Otros pasivos de deuda
+* Deuda externa total a corto plazo (según el vencimiento residual)
+
+**OJO: REVISAR LA CONSULTA A PARTIR DE 7392 HASTA 7446**
+
+### CEB = Comercio Exterior de Bienes
+
+#### 01 - Productos
+
+* Banano
+* Café
+* Aceite de Palma
+* Camarones
+* Melones y Sandí­as
+* Legumbres y Hortalizas
+* Puros o Cigarros
+* Textiles
+* Jabones
+* Plásticos y su Manufacturas
+* Papel y Cartón
+
+Tipo de valor:
+
+* Volumen
+* Valor
+* Precio
+
+Periodicidad:
+
+* Trimestral
+* Anual
+
+```{julia}
+filtro = "ESE-CEB-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+**OJO: Niv_Descr_7 y Niv_Descr_8 son iguales**
+
+#### 02 - Combustibles
+
+* Gasolina regular
+* Bunker
+* Diesel
+* Total combustibles
+* Gasolina superior
+* Kerosene
+* LPG
+
+Tipo de valor:
+
+* Barriles
+* Valor
+* Precio
+
+```{julia}
+filtro = "ESE-CEB-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 03 AE, BT Sección, Secciones
+
+* Importaciones AE
+* Importaciones BT Sección
+* Importaciones Secciones: Valores en Millones de USD y Peso en Kilos
+
+```{julia}
+filtro = "ESE-CEB-03"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 04 AE y BT
+
+* Exportaciones AE
+* Exportaciones BT
+
+```{julia}
+filtro = "ESE-CEB-04"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### BP = Balanza de Pagos
+
+- Trimestral
+- Anual
+
+```{julia}
+filtro = "ESE-BP-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### IES = Ingresos y Egresos de Servicios
+
+Ingresos y Egresos:
+
+* Exportaciones (Ingresos)
+* Importaciones (Egresos)
+
+Periodicidad:
+
+* Anual
+* Trimestral
+
+Variables:
+
+* Transporte
+* Viajes
+* Servicios de Comunicaciones
+* Otros Servicios Empresariales
+* Servicios de Gobierno
+* Otros Servicios
+* Servicios de Seguro
+* Servicios de InformÃ¡tica e Información
+* Servicios de RegalÃ­as y Derechos de Licencia
+
+**OJO: La columna Periodicidad menciona que todo es Trimestral, sin embargo la Descripción menciona valores anuales y trimestrales.**
+
+```{julia}
+filtro = "ESE-IES-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### PII = Posición de Inversión Internacional
+
+Agrupación:
+
+* Posición de Inversión Internacional por Categorí­a
+* Posición de los Activos Financieros con no Residentes por Componente
+* Posición de los Pasivos Financieros con no Residentes por Componente
+* Posición de Inversión Internacional Neta por Componente
+
+Cuentas:
+
+* Activos
+* Pasivos
+* PII Neta
+* Inversió³n extranjera directa
+* Inversión de cartera
+* Derivados financieros
+* Otra inversión
+* Activos de reservas lí­quidos oficiales
+
+```{julia}
+filtro = "ESE-PII-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### IED = Inversión Extranjera Directa
+
+```{julia}
+filtro = "ESE-IED-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+## EMF = Estadísiticas Monetarias y Financieras (Sector Fiscal)
+
+### AMCC = Agregados Monetarios, Crédito y Captación
+
+#### 01 Agregados Monetarios, Crédito y Captación
+
+```{julia}
+filtro = "EMF-AMCC-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 02 Captación: Bancos Comerciales y Otras Sociedades de Depósito (Variación y Saldo)
+
+```{julia}
+filtro = "EMF-AMCC-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 03 Crédito de los Bancos Comerciales
+
+```{julia}
+filtro = "EMF-AMCC-03"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 04 Crédito Otras Sociedades de Depósito
+
+```{julia}
+filtro = "EMF-AMCC-04"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 05 Saldo de Préstamos (Millones de Lempiras)
+
+```{julia}
+filtro = "EMF-AMCC-05"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+De los siguientes sectores:
+
+* Agropecuaria
+* Comercio
+* Consumo
+* Industria
+* Propiedad Raí­z
+* Servicios
+* Total
+
+#### 06 Préstamos Nuevos (Flujos acumulados en millones de lempiras)
+
+```{julia}
+filtro = "EMF-AMCC-06"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+De los siguientes sectores:
+
+* Agropecuaria
+* Comercio
+* Consumo
+* Industria
+* Propiedad Raí­z
+* Servicios
+* Total
+
+### TI = Tasas de Interés
+
+#### 01 Tasas de Interés, Activa y Pasiva, por Moneda
+
+Por Tipo:
+
+* Activa Préstamos
+* Pasiva Ahorros
+* Pasiva Cheques
+* Pasiva Plazo
+
+Por Moneda:
+
+* Moneda Nacional
+* Moneda Extranjera
+
+```{julia}
+filtro = "EMF-TI-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 02 Por Actividad
+
+Por Moneda:
+
+* Moneda Nacional
+* Moneda Extranjera
+
+```{julia}
+filtro = "EMF-TI-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 03 Tasas de Interés Anuales
+
+* Tasas de Interés Anuales Mí­nimas y Máximas del Sistema Bancario Comercial
+* Tasas de Interés Anuales Promedio Ponderadas del Sistema Financiero
+
+Por tipo:
+Activa
+Pasiva
+
+Por Unidad de Medida:
+
+* Máxima
+* Mínima
+* Promedio
+* Por Moneda:
+
+* Nacional
+* Extranjera
+
+```{julia}
+filtro = "EMF-TI-03"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### PFS = Panorama de las Sociedades Financieras
+
+#### 01 Bancos Comerciales, Activos y Pasivos Externos
+
+```{julia}
+filtro = "EMF-PFS-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+#### 02 Activos y Pasivos Externos
+
+```{julia}
+filtro = "EMF-PFS-02"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### EBM = Emisión y Base Monetaria
+
+* Saldo
+* Variación
+
+```{julia}
+filtro = "EMF-EBM-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+
+## EM = Estadísticas Monetarias (TPM y RIN)
+
+### Reservas Internacionales Netas (RIN)
+
+* RIN
+* Activos de Reserva Oficial
+
+```{julia}
+filtro = "EM-RIN-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### TPM
+
+```{julia}
+filtro = "EM-TPM-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+## ESP = Estadísticas de Sistema de Pagos
+
+### ACH = Operaciones de Crédito Compensadas en Ceproban y Liquidadas en BCH
+
+```{julia}
+filtro = "ESP-ACH-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### CCECH = Cheques Compensados en Ceproban y Liquidados en BCH
+
+```{julia}
+filtro = "ESP-CCECH-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+## EC = Estadísticas de Tipo de Cambio
+
+### TCR = Tipo de Cambio de Referencia
+
+```{julia}
+filtro = "EC-TCR"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+### TCN = Tipo de Cambio Nominal
+
+```{julia}
+filtro = "EC-TCR"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+## EP = Estadísticas de Precios
+
+### IPC Índice de Precios al Consumidor
+
+```{julia}
+filtro = "EP-IPC-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
+get_groups_filter(key,url)
+```
+
+# Descargar Indicadores por Rangos
+
+```{julia}
+ids = 1:7391 # Total de indicadores: 11519
+get_data_indicators(key,ids)
+```
+
+**OJO: REVISAR LA CONSULTA A PARTIR DE 7392 HASTA 7446**
+
+```{julia}
+key = clave
+df = get_indicators(key)
 ```
 
 
 
 ```{julia}
 
-# https://discourse.julialang.org/t/how-to-connect-to-a-web-api/87490
-using HTTP
-using JSON3
-
-access_token = clave_asignada  # your api key
-list_id = 1
-
-# resp = HTTP.get(
-#       url,  # url
-#       [
-#           "name" => access_token  # headers by pairs
-#           "type" => "header"
-#       ]
-# )
-
-# data = JSON3.read(resp.body)  # json data as a dict-like structure
-```
-
-
-
-```{julia}
-usr = Dict("Authorization" => clave_asignada)
-JSON.parse(String(HTTP.get(url, clave = clave_asignada)))
 ```
 
 
@@ -105,3 +1431,184 @@ JSON.parse(String(HTTP.get(url, clave = clave_asignada)))
 ```{julia}
 
 ```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
+
+
+```{julia}
+
+```
+
