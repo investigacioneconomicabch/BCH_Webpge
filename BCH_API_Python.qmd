@@ -18,7 +18,7 @@ format:
     toc: true
     toc-depth: 7
     code-fold: true
-    warnings: false
+    warning: false
 # format:
 #  html:
 #    logo: logo.png
@@ -2444,7 +2444,7 @@ df
 ```{python}
 Id = [1,2,3]
 # Id = [6282,204,1]
-# Id = [608,609,610]
+Id = [608,609,1]
 
 df = get_df(Id[0])
 for i in range(1,len(Id)):
@@ -2460,4 +2460,5 @@ df
 ```
 
 ```{python}
+
 ```

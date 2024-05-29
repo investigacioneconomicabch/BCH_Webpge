@@ -1,14 +1,15 @@
 ---
-title: 'BCH_API_Julia'
+title: 'BCH_API_R'
 author: Elvis Casco
 execute:
   echo: true
 format:
   html:
-      code-fold: true
-      code-tools: true
-      toc: true
-      echo: true
+    code-fold: true
+    code-tools: true
+    toc: true
+    echo: true
+    warning: false
 keep-ipynb: true
 # jupyter: julia-1.10
 ---
@@ -28,8 +29,11 @@ Para conocer los datos disponibles, se debe ejecutar una consulta al catálogo d
 * Correlativo del Grupo
 
 ```{r}
+library(DT)
 library(httr)
 library(jsonlite)
+library(plotly)
+library(tidyverse)
 
 clave <- "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
 ```
@@ -47,31 +51,34 @@ El formato para realizar una consulta personalizada es el siguiente:
 Este es el listado de todos los indicadores disponibles:
 
 ```{r}
-get_indicators <- function(key) {
-    res = GET(
+get_indicators <- function() {
+    res <- GET(
         "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json",
         add_headers(Clave=clave))
     data <- fromJSON(rawToChar(res$content))
+    data <- data.frame(data)
     return(data)
 }
 ```
 
 ```{r}
-data <- get_indicators(clave)
-print(nrow(data))
-print(ncol(data))
-print(names(data))
+data <- get_indicators()
+# print(nrow(data))
+# print(ncol(data))
+# print(names(data))
 knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Consultar solamente los indicadores filtrados por nombre (puede usarse partes del nombre), por ejemplo, "ESR":
 
 ```{r}
-get_indicators_filter <- function(key,url) {
-    res = GET(
+get_indicators_filter <- function(url) {
+    res <- GET(
         url,
         add_headers(Clave=clave))
     data <- fromJSON(rawToChar(res$content))
+    data <- data.frame(data)
     return(data)
 }
 ```
@@ -79,8 +86,7 @@ get_indicators_filter <- function(key,url) {
 
 ```{r}
 url <- "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json&nombre=ESR"
-data <- get_indicators_filter(key,url)
-head(data)
+data <- get_indicators_filter(url)
 knitr::kable(head(data))
 ```
 
@@ -88,8 +94,7 @@ Esto aplica para el resto de los campos; un ejemplo de consulta con varios filtr
 
 ```{r}
 url <- "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json&nombre=PIBA&correlativogrupo=10&Descripcion=Constantes"
-data <- get_indicators_filter(key,url)
-head(data)
+data <- get_indicators_filter(url)
 knitr::kable(head(data))
 ```
 
@@ -103,70 +108,36 @@ El formato para realizar una consulta personalizada es el siguiente:
 
 `https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/cifras[?formato][&fechaInicio][&fechaFinal][&valorMinimo][&valorMaximo][&ordenamiento][&omitir][&reciente]`
 
-
 ```{r}
-get_data_indicator <- function(key,id) {
-    url = paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/",as.character(id),"/cifras")
-    res = GET(
+get_data_indicator <- function(id) {
+    url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/",as.character(id),"/cifras")
+    res <- GET(
         url,
         add_headers(Clave=clave))
     data <- fromJSON(rawToChar(res$content))
     data$Fecha <- as.Date(data$Fecha)
+    data <- data.frame(data)
     return(data)
 }
-```
-
-```{r}
-# function get_data_indicator(key,id)
-#   url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" *  string(id) * "/cifras"
-#   usr = Dict("clave" => key)
-#   js = HTTP.get(url; headers = usr)
-#   df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-#   myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
-#   df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
-#   df = df[!,[:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
-#   DataFrames.sort!(df,[:Fecha],rev=true)
-#   return df
-# end
-
-# function get_data_indicator_filter(key,url,id)
-#   usr = Dict("clave" => key)
-#   js = HTTP.get(url; headers = usr)
-#   df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-#   myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
-#   df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
-#   df = df[!,[:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
-#   DataFrames.sort!(df,[:Fecha],rev=true)
-#   return df
-# end
-
-# function get_data_indicators(key,ids)
-#   ids = collect(ids)
-#   df = DataFrames.DataFrame()
-#   for i in ids
-#     df = vcat(df,get_data_indicator(key,i))
-#   end
-#   return df
-# end
 ```
 
 Consultar solo un indicador:
 
 ```{r}
 id <- 5
-data <- get_data_indicator(key,id)
-head(data)
+data <- get_data_indicator(id)
 knitr::kable(head(data))
 ```
 
 ```{r}
-get_data_indicators <- function(key,vector) {
-    data <- data.frame()
-    for (i in 1:length(vector)) { 
-        data <- rbind(data,get_data_indicator(key,vector[i]))
-    }
-    data$Fecha <- as.Date(data$Fecha)
-    return(data)
+get_data_indicators <- function(ids) {
+  data <- data.frame()
+  for (i in 1:length(ids)) { 
+    data <- rbind(data,get_data_indicator(ids[i]))
+  }
+  data$Fecha <- as.Date(data$Fecha)
+  data <- data.frame(data)
+  return(data)
 }
 ```
 
@@ -174,14 +145,14 @@ Consultar varios indicadores, usando rangos:
 
 ```{r}
 ids <- range(c(1,20))
-data <- get_data_indicators(key,ids)
+data <- get_data_indicators(ids)
 knitr::kable(head(data))
 knitr::kable(tail(data))
 ```
 
 ```{r}
 ids <- seq(1, 10, by=2)
-data <- get_data_indicators(key,ids)
+data <- get_data_indicators(ids)
 knitr::kable(head(data))
 knitr::kable(tail(data))
 ```
@@ -190,59 +161,32 @@ Consultar varios indicadores, usando IDs no contínuas:
 
 ```{r}
 ids <- c(1,7,25,35)
-data <- get_data_indicators(key,ids)
+data <- get_data_indicators(ids)
 knitr::kable(head(data))
 knitr::kable(tail(data))
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# function get_data_indicator_filter(key,url,id)
-#   usr = Dict("clave" => key)
-#   js = HTTP.get(url; headers = usr)
-#   df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-#   myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
-#   df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
-#   df = df[!,[:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
-#   DataFrames.sort!(df,[:Fecha],rev=true)
-#   return df
-# end
-
-
 ```{r}
-get_data_indicator_filter <- function(key,url,id) {
-    data <- data.frame()
-    for (i in 1:length(vector)) { 
-        data <- rbind(data,get_data_indicator(key,vector[i]))
-    }
-    return(data)
+get_data_indicator_filter <- function(url,id) {
+  res <- GET(
+    url,
+    add_headers(Clave=clave))
+  data <- fromJSON(rawToChar(res$content))
+  data <- data.frame(data)
+  return(data)
 }
 ```
-
-
-
-
 
 Consultar solo un indicador, usando filtros:
 
 ```{r}
-id = 36
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/cifras?FechaInicio=2023-03-01&FechaFinal=2023-09-01"
-get_data_indicator_filter(key,url,id)
+id = 1
+FechaInicio <- "2023-03-01"
+FechaFinal <- "2023-09-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/",as.character(id),"/cifras?FechaInicio=",FechaInicio,"&FechaFinal=",FechaFinal)
+data <- get_data_indicator_filter(url,id)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## 3. Consulta Indicadores por grupo
@@ -253,38 +197,45 @@ El formato para realizar una consulta personalizada es el siguiente:
 
 `https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/{grupo}[?formato]`
 
-
 ```{r}
-function get_groups(key)
-  url = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
-  usr = Dict("clave" => key)
-  js = HTTP.get(url; headers = usr)
-  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-  DataFrames.sort!(df,:CorrelativoGrupo)
-  df = df[!,[:Id,:Descripcion,:Periodicidad,:Grupo,:Nombre,:CorrelativoGrupo]]
-  return df
-end
-
-function get_groups_filter(key,url)
-  usr = Dict("clave" => key)
-  js = HTTP.get(url; headers = usr)
-  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-  DataFrames.sort!(df,:Id)
-  return df
-end
+get_groups <- function() {
+    res <- GET(
+        "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json",
+        add_headers(Clave=clave))
+    data <- fromJSON(rawToChar(res$content))
+    data <- data.frame(data)
+    return(data)
+}
 ```
+
 
 Consultar lista de todos los indicadores:
 
 ```{r}
-get_groups(key)
+data <- get_groups()
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Consultar componentes de grupo por filtro (en este caso debe especificarse el nombre completo del grupo, de acuerdo con la tabla anterior; caso contrario, se generan errores):
 
 ```{r}
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/ESR-PIBT-PROD-OG-CONST?formato=Json"
-get_groups_filter(key,url)
+get_groups_filter <- function(url) {
+    res = GET(
+        url,
+        add_headers(Clave=clave))
+    data <- fromJSON(rawToChar(res$content))
+    data <- data.frame(data)
+    return(data)
+}
+```
+
+```{r}
+grupo <- "ESR-PIBT-PROD-OG-CONST"
+url = paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",grupo,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## 4. Consulta cifras por grupo de indicadores
@@ -298,40 +249,46 @@ El formato para realizar una consulta personalizada es el siguiente:
 Debe especificarse el nombre completo del (los) grupo(s), de acuerdo con la tabla anterior; caso contrario, se generan errores.
 
 ```{r}
-function get_data_group(key,group)
-  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" *  group * "/cifras"
-  usr = Dict("clave" => key)
-  js = HTTP.get(url; headers = usr)
-  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-  myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
-  df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
-  df[!,:Grupo] .= group
-  df = df[!,[:Grupo,:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
-  DataFrames.sort!(df,[:IndicadorId,:Fecha],rev=[false,true])
-  return df
-end
-
-function get_data_groups(key,groups)
-  df = DataFrames.DataFrame()
-  for i in 1:size(groups)[1]
-    df = vcat(df,get_data_group(key,groups[i]))
-  end
-  return df
-end
+get_data_group <- function(group) {
+    url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",group,"/cifras")
+    res <- GET(
+        url,
+        add_headers(Clave=clave))
+    data <- fromJSON(rawToChar(res$content))
+    data$Fecha <- as.Date(data$Fecha)
+    data$Grupo <- group
+    data <- data.frame(data)
+    return(data)
+}
 ```
 
 Consultar cifras de un solo grupo:
 
 ```{r}
-group = "ESR-PIBT-PROD-OG-CONST"
-get_data_group(key,group)
+group <- "ESR-PIBT-PROD-OG-CONST"
+data <- get_data_group(group)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Consultar cifras de varios grupos:
 
 ```{r}
-groups = ["ESR-PIBT-PROD-OG-CONST","ESE-PII-01"]
-get_data_groups(key,groups)
+get_data_groups <- function(groups) {
+  data <- data.frame()
+  for (i in 1:length(groups)) { 
+    data <- rbind(data,get_data_group(groups[i]))
+  }
+  data <- data.frame(data)
+  return(data)
+}
+```
+
+```{r}
+groups <- c("ESE-PII-01","ESR-PIBT-PROD-OG-CONST")
+data <- get_data_groups(groups)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## 5. Consulta por fecha de registro
@@ -343,26 +300,27 @@ El formato para realizar una consulta personalizada es el siguiente:
 `https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/cifras/{fecha}[?formato]`
 
 ```{r}
-function get_data_date(key,id,date)
-  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/cifras/" * date * "?formato=JSON"
-  usr = Dict("clave" => key)
-  js = HTTP.get(url; headers = usr)
-  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-  myFormat = Dates.DateFormat("yyy-mm-ddTHH:MM:SS")
-  df.Fecha = @. Dates.Date(Dates.DateTime.(df.Fecha ,myFormat))
-  df[!,:Grupo] .= group
-  df = df[!,[:Grupo,:IndicadorId,:Nombre,:Descripcion,:Fecha,:Valor]]
-  DataFrames.sort!(df,[:IndicadorId,:Fecha],rev=[false,true])
-  return df
-end
+get_data_date <- function(id,date) {
+    url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/",as.character(id),"/cifras/",date,"?formato=JSON")
+    res <- GET(
+        url,
+        add_headers(Clave=clave))
+    data <- fromJSON(rawToChar(res$content))
+    data$Fecha <- as.Date(data$Fecha)
+    data$Grupo <- group
+    data <- data.frame(data)
+    return(data)
+}
 ```
 
 Consultar solamente un Id y una fecha:
 
 ```{r}
-id = 1
-date = "2023-03-01"
-get_data_date(key,id,date)
+id <- 2
+date <- "2023-03-01"
+data <- get_data_date(id,date)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## 6. Consulta de información por Id de indicador
@@ -373,45 +331,54 @@ El formato para realizar una consulta personalizada es el siguiente:
 
 `https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/cifras/{fecha}[?formato]`
 
-```{r}
-function get_info_id(key,id)
-  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "?formato=JSON"
-  usr = Dict("clave" => key)
-  js = HTTP.get(url; headers = usr)
-  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-  df = df[!,[:Id,:Nombre,:Descripcion,:Periodicidad,:CorrelativoGrupo,:Grupo]]
-  return df
-end
-
-function get_info_ids(key,ids)
-  ids = collect(ids)
-  df = DataFrames.DataFrame()
-  for i in ids
-    df = vcat(df,get_info_id(key,i))
-  end
-  return df
-end
-```
-
 Consultar solamente un Id:
 
 ```{r}
-id = 1
-get_info_id(key,id)
+get_info_id <- function(id) {
+  url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/",as.character(id),"?formato=JSON")
+  res <- GET(
+    url,
+    add_headers(Clave=clave))
+  data <- fromJSON(rawToChar(res$content))
+  data <- data.frame(data)
+  return(data)
+}
+```
+
+
+```{r}
+id <- 1
+data <- get_info_id(id)
+knitr::kable(head(data))
 ```
 
 Consultar varios Ids, rango:
 
 ```{r}
-ids = 1:3
-get_info_ids(key,ids)
+get_info_ids <- function(ids) {
+  data <- data.frame()
+  for (i in 1:length(ids)) { 
+    data <- rbind(data,get_info_id(ids[i]))
+  }
+  data <- data.frame(data)
+  return(data)
+}
+```
+
+```{r}
+ids <- seq(1, 10, by=2)
+data <- get_info_ids(ids)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Consultar varios Ids, números:
 
 ```{r}
-ids = 1,7,25
-get_info_ids(key,ids)
+ids <- c(1,7,25,50)
+data <- get_info_ids(ids)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## 7. Conteo de cifras para cada indicador
@@ -425,29 +392,34 @@ El formato para realizar una consulta personalizada es el siguiente:
 Esta forma de consulta permite filtrar por valores incompletos de los elementos nombre, descripcion y grupo.
 
 ```{r}
-function get_count_gids(key,url)
-  usr = Dict("clave" => key)
-  js = HTTP.get(url; headers = usr)
-  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-  df = df[!,[:Id,:Nombre,:Descripcion,:Periodicidad,:CorrelativoGrupo,:Grupo,:Conteo]]
-  return df
-end
+get_count_gids <- function(url) {
+    res = GET(
+        url,
+        add_headers(Clave=clave))
+    data <- fromJSON(rawToChar(res$content))
+    data <- data.frame(data)
+    return(data)
+}
 ```
 
 Filtro por nombre del indicador:
 
 ```{r}
-filtro = "EC-"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&nombre=" * filtro
-get_count_gids(key,url)
+filtro <- "EC-"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&nombre=",filtro)
+data <- get_count_gids(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Filtro por descripción del indicador:
 
 ```{r}
-filtro = "cambio"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&descripcion=" * filtro
-get_count_gids(key,url)
+filtro <- "PIB"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&descripcion=",filtro)
+data <- get_count_gids(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Filtro por periodicidad del indicador:
@@ -458,25 +430,31 @@ Filtro por periodicidad del indicador:
 - Anual.
 
 ```{r}
-filtro = "Mensual"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&periodicidad=" * filtro
-get_count_gids(key,url)
+filtro <- "Mensual"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&periodicidad=",filtro)
+data <- get_count_gids(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Filtro por grupo del indicador:
 
 ```{r}
-filtro = "ODA"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&grupo=" * filtro
-get_count_gids(key,url)
+filtro <- "ODA"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&grupo=",filtro)
+data <- get_count_gids(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Filtro por correlativo de grupo del indicador:
 
 ```{r}
-filtro = 10
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&correlativogrupo=" * string(filtro)
-get_count_gids(key,url)
+filtro <- 10
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/conteos?formato=Json&correlativogrupo=",as.character(filtro))
+data <- get_count_gids(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## 8. Conteo de cifras para un indicador
@@ -488,19 +466,21 @@ El formato para realizar una consulta personalizada es el siguiente:
 `https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/conteos[?formato]`
 
 ```{r}
-function get_count_id1(key,id)
-  url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/conteos?formato=Json"
-  usr = Dict("clave" => key)
-  js = HTTP.get(url; headers = usr)
-  df = DataFrames.DataFrame(JSON.parse(String(js.body)))
-  df = df[!,[:Id,:Nombre,:Descripcion,:Periodicidad,:CorrelativoGrupo,:Grupo,:Conteo]]
-  return df
-end
+get_count_id1 <- function(id) {
+  url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/",as.character(id),"/conteos?formato=Json")
+  res <- GET(
+    url,
+    add_headers(Clave=clave))
+  data <- fromJSON(rawToChar(res$content))
+  data <- data.frame(data)
+  return(data)
+}
 ```
 
 ```{r}
-id = 110
-get_count_id1(key,id)
+id <- 110
+data <- get_count_id1(id)
+knitr::kable(head(data))
 ```
 
 # Grupos
@@ -508,45 +488,31 @@ get_count_id1(key,id)
 Las variables están categorizadas en 8 grupos principales y 54 subgrupos (ESE-BP-01 y ESE-CEB-01 contienen variables de periodicidad anual o trimestral, y EM-TPM-01 tiene variables de periodicidad diaria o mensual). La nomenclatura utilizada permite dividir estos en un máximo de cinco niveles, tomando en cuenta el separador (-). Se explicarán los mismos a continuacion, ordenando de acuerdo al número de niveles (número de subgrupos).
 
 ```{r}
-df = get_groups(key)
-df_groups = @chain df begin
-  DataFrames.groupby(
-    # [:Grupo,:CorrelativoGrupo,:Periodicidad])
-    # [:Grupo])
-    [:Grupo,:Periodicidad])
-  DataFrames.combine(
-    nrow => :Conteo)
-end
-DataFrames.sort!(df_groups,:Conteo,rev=true)
-df_groups = hcat(
-  df_groups,
-  DataFrames.select(
-    df_groups, 
-    :Grupo =>
-      ByRow(x -> get.(Ref(split(x, '-')), 1:5, missing)) =>
-      [:Gr1,:Gr2,:Gr3,:Gr4,:Gr5]))
-CSV.write(
-    wd .* "/api/grupos_julia.csv",
-    delim = ";",
-  df_groups);
+df <- get_groups()
+df <- df %>% 
+  count(Grupo,Periodicidad, sort = TRUE) 
+df <- df %>% 
+  separate(
+    Grupo, 
+    into = c("Gr1","Gr2","Gr3","Gr4","Gr5"), 
+    remove = FALSE)
+df$Niv_Gr <- rowSums(!is.na(df[c(2:6)]))
+df <- df %>% 
+  mutate(Gr3 = replace_na(Gr3, "")) %>%
+  mutate(Gr4 = replace_na(Gr4, "")) %>%
+  mutate(Gr5 = replace_na(Gr5, ""))
+knitr::kable(head(df))
+knitr::kable(tail(df))
 ```
 
 Todos los grupos pueden clasificarse en al menos dos subgrupos:
 
-```{r}
-df_groups
-DataFrames.describe(
-  df_groups, 
-  :nmissing, 
-  length => :length,
-  cols = [:Gr1,:Gr2,:Gr3,:Gr4,:Gr5])
-DataFrames.transform!(
-  df_groups, 
-  AsTable(Between(:Gr1,:Gr5)) => ByRow(count_groups) => :Niv_Gr)
-DataFrames.sort!(df_groups,[:Grupo,:Niv_Gr],rev=[true,true])
-```
-
 Los 8 grupos principales mencionados permiten consolidar los archivos de acuerdo con el origen de los datos en la página web del BCH, que en su mayoría pueden consultarse en los reportes dinámicos. A su vez, estos grupos pueden subdividirse en 25 subgrupos:
+
+
+
+
+
 
 ## EOM = Estadísticas de Operaciones Monetarias
 
@@ -557,33 +523,41 @@ Cuatro niveles de agregación:
 * 01 = Tasas de Rendimiento Diario de Valores Gubernamentales
 
 ```{r}
-filtro = "EOM-OMA-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EOM-OMA-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 * 02 = Créditos (Niv_Descr_4 = 1-3) e Inversiones (Niv_Descr_4 = 4-6): Monto, Número de Solicitudes y Tasa
 
 ```{r}
-filtro = "EOM-OMA-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EOM-OMA-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 * 03 = Monto, Número de Operaciones y Tasa
 
 ```{r}
-filtro = "EOM-OMA-03"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EOM-OMA-03"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 * 04 = Monto, Número de Operaciones y Tasa (Dólares - Lempiras)
 
 ```{r}
-filtro = "EOM-OMA-04"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EOM-OMA-04"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## ESR = Estadísticas del Sector Real
@@ -614,9 +588,11 @@ Como la Oferta y Utilización están detalladas a nivel de NPH, el VAB por NPH a
 * Exportaciones FOB + Gasto de Consumo Final + Formación Bruta de Capital (Utilización) - Importaciones CIF - Ajuste CIF/FOB (Oferta) => PIB por el enfoque del Gasto.
 
 ```{r}
-filtro = "ESR-COU-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-COU-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### CCI = Clasificación Cruzada Industria
@@ -634,9 +610,11 @@ Los cuadros en cada hoja contienen los valores a nivel de Industria en las filas
 Debido a que el VAB implica tomar en cuenta impuestos y subvenciones a nivel de NPH, no es posible obtener el cálculo de esta variable por suma a partir de los cuadros del CCI (ver explicación en el apartado del COU).
 
 ```{r}
-filtro = "ESR-CCI-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-CCI-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### VAB = Valor Agregado Bruto
@@ -644,17 +622,21 @@ get_groups_filter(key,url)
 #### Valor y Variación, Corrientes y Constantes, por NAEH
 
 ```{r}
-filtro = "ESR-VAB-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-VAB-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### Precio y Variación, Corrientes y Constantes, por NAEH
 
 ```{r}
-filtro = "ESR-VAB-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-VAB-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Notar que aquí el Nivel de Descripción 6 (Niv_Descr_6) no es una buena opción de desagregación, puesto que los componentes son "Actividad Económica" y “Productos Alimenticios, Bebidas y Tabaco”; esta última está detallada en mayor grado en el Nivel de Descripción 7 (Niv_Descr_7).
@@ -671,17 +653,21 @@ La información se encuentra en la viñeta "Sector Real" de la [página web del 
 * Variación Series Agregadas
 
 ```{r}
-filtro = "ESR-PIBA-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBA-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### Precios y Variación, por Componente del Gasto
 
 ```{r}
-filtro = "ESR-PIBA-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBA-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Tipo de Valores ("Niv_Descr_5"):
@@ -692,9 +678,11 @@ Tipo de Valores ("Niv_Descr_5"):
 #### Precios y Variación, por Componente del Ingreso
 
 ```{r}
-filtro = "ESR-PIBA-03"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBA-03"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Componente del Ingreso:
@@ -708,9 +696,11 @@ Componente del Ingreso:
 #### Ingreso Nacional, PIB, PNB
 
 ```{r}
-filtro = "ESR-PIBA-04"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBA-04"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 * Dólares
@@ -746,33 +736,41 @@ CorrelativoGrupo:
 ##### OG-CONST = PIB Trimestral por el Enfoque de la Producción, Serie Original, Valores Constantes
 
 ```{r}
-filtro = "ESR-PIBT-PROD-OG-CONST"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-PROD-OG-CONST"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ##### OG-CORR = PIB Trimestral por el Enfoque de la Producción, Serie Original, Valores Corrientes
 
 ```{r}
-filtro = "ESR-PIBT-PROD-OG-CORR"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-PROD-OG-CORR"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ##### DES-CONST = PIB Trimestral por el Enfoque de la Producción, Serie Desestacionalizada, Valores Constantes
 
 ```{r}
-filtro = "ESR-PIBT-PROD-DES-CONST"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-PROD-DES-CONST"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ##### DES-CORR = PIB Trimestral por el Enfoque de la Producción, Serie Desestacionalizada, Valores Corrientes
 
 ```{r}
-filtro = "ESR-PIBT-PROD-DES-CORR"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-PROD-DES-CORR"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### GAST = PIB Trimestral por el Enfoque del Gasto
@@ -791,41 +789,51 @@ CorrelativoGrupo:
 ##### OG-CONST = PIB Trimestral por el Enfoque de del Gasto, Serie Original, Valores Constantes
 
 ```{r}
-filtro = "ESR-PIBT-GAST-OG-CONST"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-GAST-OG-CONST"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ##### OG-CORR = PIB Trimestral por el Enfoque de del Gasto, Serie Original, Valores Corrientes
 
 ```{r}
-filtro = "ESR-PIBT-GAST-OG-CORR"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-GAST-OG-CORR"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ##### DES-CONST = PIB Trimestral por el Enfoque del Gasto, Serie Desestacionalizada, Valores Constantes
 
 ```{r}
-filtro = "ESR-PIBT-GAST-DES-CONST"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-GAST-DES-CONST"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ##### DES-CORR = PIB Trimestral por el Enfoque del Gasto, Serie Desestacionalizada, Valores Corrientes
 
 ```{r}
-filtro = "ESR-PIBT-GAST-DES-CORR"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-GAST-DES-CORR"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### TDC = PIB Trimestral, Tasas de Crecimiento, Valores Ajustados
 
 ```{r}
-filtro = "ESR-PIBT-TDC-Valores"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-PIBT-TDC-Valores"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### ODA = Oferta y Demanda Agregada
@@ -908,9 +916,11 @@ Niv_Descr_4, de acuerdo con lo anterior, es:
 * VARIACIONES RELATIVAS CORRIENTES
 
 ```{r}
-filtro = "ESR-ODA-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-ODA-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### IMAE = Índice Mensual de la Actividad Económica
@@ -938,9 +948,11 @@ El tipo de valor (Niv_Descr_5) de dichas variables es:
 * Interanual
 
 ```{r}
-filtro = "ESR-IMAE-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESR-IMAE-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## ESE = Estadísticas del Sector Externo
@@ -950,17 +962,21 @@ get_groups_filter(key,url)
 #### 01 - Deudor
 
 ```{r}
-filtro = "ESE-DE-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-DE-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 02 - Acreedor
 
 ```{r}
-filtro = "ESE-DE-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-DE-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### 03 - Institución
@@ -985,17 +1001,21 @@ Las cuentas son:
 * Saldo bruto de la deuda externa
 
 ```{r}
-filtro = "ESE-DE-03"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-DE-03"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### 04 - Pagos que vencen en un año o menos
 
 ```{r}
-filtro = "ESE-DE-04"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-DE-04"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 Por institución:
@@ -1053,9 +1073,11 @@ Periodicidad:
 * Anual
 
 ```{r}
-filtro = "ESE-CEB-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-CEB-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 **OJO: Niv_Descr_7 y Niv_Descr_8 son iguales**
@@ -1077,9 +1099,11 @@ Tipo de valor:
 * Precio
 
 ```{r}
-filtro = "ESE-CEB-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-CEB-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 03 AE, BT Sección, Secciones
@@ -1089,9 +1113,11 @@ get_groups_filter(key,url)
 * Importaciones Secciones: Valores en Millones de USD y Peso en Kilos
 
 ```{r}
-filtro = "ESE-CEB-03"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-CEB-03"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 04 AE y BT
@@ -1100,9 +1126,11 @@ get_groups_filter(key,url)
 * Exportaciones BT
 
 ```{r}
-filtro = "ESE-CEB-04"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-CEB-04"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### BP = Balanza de Pagos
@@ -1111,9 +1139,11 @@ get_groups_filter(key,url)
 - Anual
 
 ```{r}
-filtro = "ESE-BP-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-BP-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### IES = Ingresos y Egresos de Servicios
@@ -1143,9 +1173,11 @@ Variables:
 **OJO: La columna Periodicidad menciona que todo es Trimestral, sin embargo la Descripción menciona valores anuales y trimestrales.**
 
 ```{r}
-filtro = "ESE-IES-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-IES-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### PII = Posición de Inversión Internacional
@@ -1169,17 +1201,21 @@ Cuentas:
 * Activos de reservas lí­quidos oficiales
 
 ```{r}
-filtro = "ESE-PII-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-PII-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### IED = Inversión Extranjera Directa
 
 ```{r}
-filtro = "ESE-IED-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESE-IED-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## EMF = Estadísiticas Monetarias y Financieras (Sector Fiscal)
@@ -1189,41 +1225,51 @@ get_groups_filter(key,url)
 #### 01 Agregados Monetarios, Crédito y Captación
 
 ```{r}
-filtro = "EMF-AMCC-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-AMCC-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 02 Captación: Bancos Comerciales y Otras Sociedades de Depósito (Variación y Saldo)
 
 ```{r}
-filtro = "EMF-AMCC-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-AMCC-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 03 Crédito de los Bancos Comerciales
 
 ```{r}
-filtro = "EMF-AMCC-03"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-AMCC-03"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 04 Crédito Otras Sociedades de Depósito
 
 ```{r}
-filtro = "EMF-AMCC-04"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-AMCC-04"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 05 Saldo de Préstamos (Millones de Lempiras)
 
 ```{r}
-filtro = "EMF-AMCC-05"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-AMCC-05"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 De los siguientes sectores:
@@ -1239,9 +1285,11 @@ De los siguientes sectores:
 #### 06 Préstamos Nuevos (Flujos acumulados en millones de lempiras)
 
 ```{r}
-filtro = "EMF-AMCC-06"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-AMCC-06"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 De los siguientes sectores:
@@ -1271,9 +1319,11 @@ Por Moneda:
 * Moneda Extranjera
 
 ```{r}
-filtro = "EMF-TI-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-TI-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 02 Por Actividad
@@ -1284,9 +1334,11 @@ Por Moneda:
 * Moneda Extranjera
 
 ```{r}
-filtro = "EMF-TI-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-TI-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 03 Tasas de Interés Anuales
@@ -1309,9 +1361,11 @@ Por Unidad de Medida:
 * Extranjera
 
 ```{r}
-filtro = "EMF-TI-03"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-TI-03"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### PFS = Panorama de las Sociedades Financieras
@@ -1319,17 +1373,21 @@ get_groups_filter(key,url)
 #### 01 Bancos Comerciales, Activos y Pasivos Externos
 
 ```{r}
-filtro = "EMF-PFS-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-PFS-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 #### 02 Activos y Pasivos Externos
 
 ```{r}
-filtro = "EMF-PFS-02"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-PFS-02"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### EBM = Emisión y Base Monetaria
@@ -1338,9 +1396,11 @@ get_groups_filter(key,url)
 * Variación
 
 ```{r}
-filtro = "EMF-EBM-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EMF-EBM-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 
@@ -1352,17 +1412,21 @@ get_groups_filter(key,url)
 * Activos de Reserva Oficial
 
 ```{r}
-filtro = "EM-RIN-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EM-RIN-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### TPM
 
 ```{r}
-filtro = "EM-TPM-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EM-TPM-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## ESP = Estadísticas de Sistema de Pagos
@@ -1370,17 +1434,21 @@ get_groups_filter(key,url)
 ### ACH = Operaciones de Crédito Compensadas en Ceproban y Liquidadas en BCH
 
 ```{r}
-filtro = "ESP-ACH-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESP-ACH-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### CCECH = Cheques Compensados en Ceproban y Liquidados en BCH
 
 ```{r}
-filtro = "ESP-CCECH-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "ESP-CCECH-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## EC = Estadísticas de Tipo de Cambio
@@ -1388,17 +1456,21 @@ get_groups_filter(key,url)
 ### TCR = Tipo de Cambio de Referencia
 
 ```{r}
-filtro = "EC-TCR"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EC-TCR"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ### TCN = Tipo de Cambio Nominal
 
 ```{r}
-filtro = "EC-TCR"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EC-TCN-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 ## EP = Estadísticas de Precios
@@ -1406,42 +1478,61 @@ get_groups_filter(key,url)
 ### IPC Índice de Precios al Consumidor
 
 ```{r}
-filtro = "EP-IPC-01"
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
-get_groups_filter(key,url)
+filtro <- "EP-IPC-01"
+url <- paste0("https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/",filtro,"?formato=Json")
+data <- get_groups_filter(url)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 # Descargar Indicadores por Rangos
 
 ```{r}
 # ids = 11001:11519 # Total de indicadores: 11519
-# get_data_indicators(key,ids)
+# get_data_indicators(ids)
 ```
 
 ```{r}
-ids = 11519 # Total de indicadores: 11519
-get_data_indicator(key,ids)
+ids <- c(1,11519) # Total de indicadores: 11519
+data <- get_data_indicators(ids)
+knitr::kable(head(data))
+knitr::kable(tail(data))
 ```
 
 **OJO: las columnas 6642 hasta 6687 tienen error: column name "Fecha" not found in the data frame since it has no columns**
 **OJO: las columnas 7392 hasta 7446 tienen error: column name "Fecha" not found in the data frame since it has no columns**
 
+# Filtar Series por palabra clave
 
 ```{r}
-key = clave
-df = get_indicators(key)
+data <- get_indicators()
+datatable(data)
 ```
 
-
-
-```{r}
-
-```
-
-
+# Gráficos
 
 ```{r}
+ids <- c(1,3,50) # Total de indicadores: 11519
+data <- get_data_indicators(ids)
+knitr::kable(tail(data))
 
+fig <- plot_ly(data, 
+  x = ~Fecha,
+  y = ~Valor,
+  color = ~Descripcion,
+  type = 'scatter',
+  mode = 'lines') %>%
+  layout(
+    xaxis = list(title = ''),
+    yaxis = list(title = ''),
+    legend = list(
+      orientation = "h",
+      xanchor = "center",
+      title=list(text=''),
+      x = 0.5),
+    title = "",
+    xaxis = list(dtick = ""))
+fig
 ```
 
 

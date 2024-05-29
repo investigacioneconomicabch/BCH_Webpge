@@ -5,10 +5,11 @@ execute:
   echo: true
 format:
   html:
-      code-fold: true
-      code-tools: true
-      toc: true
-      echo: true
+    code-fold: true
+    code-tools: true
+    toc: true
+    echo: true
+    warning: false
 keep-ipynb: true
 jupyter: julia-1.10
 ---
@@ -1355,7 +1356,7 @@ get_groups_filter(key,url)
 ### TCN = Tipo de Cambio Nominal
 
 ```{julia}
-filtro = "EC-TCR"
+filtro = "EC-TCN-01"
 url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?formato=Json"
 get_groups_filter(key,url)
 ```
@@ -1373,11 +1374,18 @@ get_groups_filter(key,url)
 # Descargar Indicadores por Rangos
 
 ```{julia}
-ids = 1:7391 # Total de indicadores: 11519
-get_data_indicators(key,ids)
+# ids = 11001:11519 # Total de indicadores: 11519
+# get_data_indicators(key,ids)
 ```
 
-**OJO: REVISAR LA CONSULTA A PARTIR DE 7392 HASTA 7446**
+```{julia}
+ids = 11519 # Total de indicadores: 11519
+get_data_indicator(key,ids)
+```
+
+**OJO: las columnas 6642 hasta 6687 tienen error: column name "Fecha" not found in the data frame since it has no columns**
+**OJO: las columnas 7392 hasta 7446 tienen error: column name "Fecha" not found in the data frame since it has no columns**
+
 
 ```{julia}
 key = clave
