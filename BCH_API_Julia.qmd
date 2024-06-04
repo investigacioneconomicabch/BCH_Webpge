@@ -121,7 +121,7 @@ CSV.write(
 Consultar solamente los indicadores filtrados por nombre (puede usarse partes del nombre), por ejemplo, "ESR":
 
 ```{julia}
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json&nombre=ESR"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/?formato=Json&nombre=PIBT"
 get_indicators_filter(key,url)
 ```
 
@@ -179,7 +179,7 @@ end
 Consultar solo un indicador:
 
 ```{julia}
-id = 5
+id = 25
 get_data_indicator(key,id)
 ```
 
@@ -201,7 +201,7 @@ Consultar solo un indicador, usando filtros:
 
 ```{julia}
 id = 36
-url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/cifras?FechaInicio=2023-03-01&FechaFinal=2023-09-01"
+url = "https://bchapi-am.azure-api.net/api/v1/indicadores/" * string(id) * "/cifras?FechaInicio=2021-03-01&FechaFinal=2023-09-01"
 get_data_indicator_filter(key,url,id)
 ```
 
@@ -923,7 +923,7 @@ url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?f
 get_groups_filter(key,url)
 ```
 
-### 03 - Institución
+#### 03 - Institución
 
 Las instituciones son:
 
@@ -950,7 +950,7 @@ url = "https://bchapi-am.azure-api.net/api/v1/indicadores/grupo/" * filtro * "?f
 get_groups_filter(key,url)
 ```
 
-### 04 - Pagos que vencen en un año o menos
+#### 04 - Pagos que vencen en un año o menos
 
 ```{julia}
 filtro = "ESE-DE-04"
@@ -1374,12 +1374,12 @@ get_groups_filter(key,url)
 # Descargar Indicadores por Rangos
 
 ```{julia}
-# ids = 11001:11519 # Total de indicadores: 11519
-# get_data_indicators(key,ids)
+ids = 1,29 # Total de indicadores: 11519
+get_data_indicators(key,ids)
 ```
 
 ```{julia}
-ids = 11519 # Total de indicadores: 11519
+ids = 1 # Total de indicadores: 11519
 get_data_indicator(key,ids)
 ```
 
