@@ -979,7 +979,7 @@ knitr::kable(head(data))
 knitr::kable(tail(data))
 ```
 
-### 03 - Institución
+#### 03 - Institución
 
 Las instituciones son:
 
@@ -1008,7 +1008,7 @@ knitr::kable(head(data))
 knitr::kable(tail(data))
 ```
 
-### 04 - Pagos que vencen en un año o menos
+#### 04 - Pagos que vencen en un año o menos
 
 ```{r}
 filtro <- "ESE-DE-04"
@@ -1406,7 +1406,7 @@ knitr::kable(tail(data))
 
 ## EM = Estadísticas Monetarias (TPM y RIN)
 
-### Reservas Internacionales Netas (RIN)
+### RIN = Reservas Internacionales Netas (RIN)
 
 * RIN
 * Activos de Reserva Oficial
@@ -1419,7 +1419,7 @@ knitr::kable(head(data))
 knitr::kable(tail(data))
 ```
 
-### TPM
+### TPM = Tasa de Política Monetaria
 
 ```{r}
 filtro <- "EM-TPM-01"
@@ -1512,7 +1512,7 @@ datatable(data)
 # Gráficos
 
 ```{r}
-ids <- c(1,3,50) # Total de indicadores: 11519
+ids <- c(8,29,37,40,185,190,195,199) # Total de indicadores: 11519
 data <- get_data_indicators(ids)
 knitr::kable(tail(data))
 
