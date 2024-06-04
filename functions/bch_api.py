@@ -48,11 +48,54 @@ def get_df(id):
     df = df.unique(maintain_order=True)
     return df
 
+def get_df_interno(id):
+    hdr ={'Cache-Control': 'no-cache',
+          'clave': clave_asignada,}
+    url_0 = "https://servicios.bch.hn/swagger/api/v1/indicadores?formato=Json"
+    url = f'https://servicios.bch.hn/swagger/api/v1/indicadores/{id}/cifras'
+    all_variables = get_info(url_0, hdr)
+    data = get_info(url, hdr)
+    df = pd.DataFrame(
+        data = data['Valor'].values, 
+        index = pd.DatetimeIndex(data['Fecha']))
+    df.columns = [all_variables["Descripcion"][id-1]]
+    df = pl.from_pandas(df,include_index=True
+        ).with_columns(
+            pl.col("Fecha").cast(pl.Date))
+    df = df.sort("Fecha")
+    df = df.unique(maintain_order=True)
+    return df
+
 def get_plot(id):
     hdr ={'Cache-Control': 'no-cache',
           'clave': clave_asignada,}
     url_0 = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
     url = f'https://bchapi-am.azure-api.net/api/v1/indicadores/{id}/cifras'
+    all_variables = get_info(url_0, hdr)
+    data = get_info(url, hdr)
+    df = pd.DataFrame(
+        data = data['Valor'].values, 
+        index = pd.DatetimeIndex(data['Fecha']))
+    fig = px.line(
+        df, 
+        # title = all_variables['Descripcion'].unique()[0],
+        title = all_variables["Descripcion"][id-1]
+        )
+    fig.update_layout(
+        autosize=False,
+        width=800,
+        height=500,
+        template = 'plotly_white',
+        showlegend=False)
+    fig.update_xaxes(title=None)
+    fig.update_yaxes(title=None)
+    fig.show()
+
+def get_plot_interno(id):
+    hdr ={'Cache-Control': 'no-cache',
+          'clave': clave_asignada,}
+    url_0 = "https://servicios.bch.hn/swagger/api/v1/indicadores?formato=Json"
+    url = f'https://servicios.bch.hn/swagger/api/v1/indicadores/{id}/cifras'
     all_variables = get_info(url_0, hdr)
     data = get_info(url, hdr)
     df = pd.DataFrame(
@@ -80,6 +123,16 @@ def get_groups():
     exec(open(file_path + "/functions/bch_api.py").read())
 
     url = "https://bchapi-am.azure-api.net/api/v1/indicadores?formato=Json"
+    hdr ={'Cache-Control': 'no-cache',
+        'clave': clave_asignada,}
+    dfmeta = get_info(url, hdr)
+    return dfmeta
+
+def get_groups_interno():
+    file_path = os.path.dirname(__file__)
+    exec(open(file_path + "/functions/bch_api.py").read())
+
+    url = "https://servicios.bch.hn/swagger/api/v1/indicadores?formato=Json"
     hdr ={'Cache-Control': 'no-cache',
         'clave': clave_asignada,}
     dfmeta = get_info(url, hdr)
