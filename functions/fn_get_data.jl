@@ -1365,7 +1365,7 @@ function get_data()
     BalCam()]
 
 
-data = []
+    data = []
     for i in 1:size(funciones)[1]
     push!(
         data,
