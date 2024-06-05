@@ -26,8 +26,6 @@ Los mecanismos adiconales de consulta son los siguientes:
 
 Contiene explicación sobre el contenido de datos disponibles en la [API](https://bchapi-am.developer.azure-api.net/) del Banco Central de Honduras (BCH), utilizando **Python**. Esta API fue desarrollada en 2024 y genera consultas a los archivos dinámicos disponibles a la fecha, limitadas al uso de número de serie como clave de consulta.
 
-Puede tenerse acceso al procedimiento básico en [Google Colab](https://drive.google.com/drive/folders/11cLz9mKMT9ozYQKTYae0f-Sh7LdO6aJD?usp=sharing) (ingresando con su cuenta de Gmail).
-
 En Python, debe instalarse previamente las funciones listadas en el siguiente código:
 
 ```
