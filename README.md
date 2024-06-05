@@ -2,7 +2,7 @@
 
 Este repositorio contiene archivos que permiten obtener series estadísticas de Honduras publicadas en la página web del [Banco Central de Honduras (BCH)](www.bch.hn).
 
-Para entender el mecanismo de consulta de la API, se pueden utilizar los siguientes archivos:
+Para entender el mecanismo de consulta de la API (Application Programming Interface), se pueden utilizar los siguientes archivos:
 
 1. BCH_API_Python.qmd: uso de la API para consulta de más de 15,000 variables contenidas en los archivos dinámicos; en este archivo se explican cómo obtener los componentes de cada grupo;
 2. BCH_API_R.qmd: Brinda ejemplos de códigos en R para obtener información de la API, apegándose a los mecanismos de consulta descritos en [su página web](https://bchapi-am.developer.azure-api.net/):
@@ -21,6 +21,8 @@ Los mecanismos adiconales de consulta son los siguientes:
 
 1. BCH_Webpage.qmd: consulta de algunos archivos ubicados en diferentes rutas de la página web del BCH.
 2. PaginaWeb_Julia.qmd: consulta a archivos dinámicos de la página web del BCH.
+
+Se desarrolló una [consulta interactiva mediante Shiny](https://investigacioneconomicabch.shinyapps.io/BCH_API_Shiny/), con el fin de que el usuario seleccione series (por Id) de acuerdo a niveles de consulta por grupo, obteniendo el gráfico y los valores de dichas series, además permite descargar las Id seleccionadas. El código en R puede consultarse en el archivo `app.R` de este repositorio.
 
 ## BCH_API_Python.qmd
 
@@ -199,17 +201,15 @@ Las columnas de este archivo son las siguientes:
 * Sector: ruta inicial de los [archivos dinámicos](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos);
 * Path: siguiente ruta para los archivos dinámicos; por ejemplo, para las "estadísticas cambiarias", se tienen [varios submenús](https://www.bch.hn/estadisticas-y-publicaciones-economicas/reportes-dinamicos/estadisticas-cambiarias);
 * XLSXLinks: Ruta de lectura para los archivos de Excel;
-* Sector_abv: Abreviaturas del sector, estandarizado a cuatro caracteres:
-1. EC00: estadisticas-cambiarias;
-2. SPAG: sistema-de-pagos;
-3. TC00: tipo-de-cambio;
-4. OMA0: operaciones-de-mercado-abierto;
-5. P000: precios;
-6. M000: sector-monetario;
-7. R000: sector-real;
-8. ET00: sector-externo;
-9. FIS0: sector-fiscal;
-10 ENC0: resultados-de-encuestas
+* Sector_abv: Abreviaturas del sector:
+1. EC: estadisticas-cambiarias;
+2. ESP: sistema-de-pagos;
+3. EOM: estadísticas de operaciones monetarias;
+4. EP: precios;
+5. ESR: sector-real;
+6. ESE: sector-externo;
+7. EMF: sector-fiscal;
+8. ENC: resultados-de-encuestas
 
 La consolidación de todas las series económicas de estos grupos (con excepción de las operacionse de mercado abierto) se guardan en un solo archivo en `data/Reportes_Dinamicos.csv`:
 
