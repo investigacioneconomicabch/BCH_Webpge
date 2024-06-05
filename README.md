@@ -2,11 +2,25 @@
 
 Este repositorio contiene archivos que permiten obtener series estadísticas de Honduras publicadas en la página web del [Banco Central de Honduras (BCH)](www.bch.hn).
 
-Los mecanismos de consulta son los siguientes:
+Para entender el mecanismo de consulta de la API, se pueden utilizar los siguientes archivos:
 
-1. BCH_API_Python.qmd: uso de la API para consulta de más de 15,000 variables contenidas en los archivos dinámicos.
-2. BCH_Webpage.qmd: consulta de algunos archivos ubicados en diferentes rutas de la página web del BCH.
-3. PaginaWeb_Julia.qmd: consulta a archivos dinámicos de la página web del BCH.
+1. BCH_API_Python.qmd: uso de la API para consulta de más de 15,000 variables contenidas en los archivos dinámicos; en este archivo se explican cómo obtener los componentes de cada grupo;
+2. BCH_API_R.qmd: Brinda ejemplos de códigos en R para obtener información de la API, apegándose a los mecanismos de consulta descritos en [su página web](https://bchapi-am.developer.azure-api.net/):
+   1. Consulta de catálogo de indicadores;
+   2. Consulta cifras por Id de indicador;
+   3. Consulta Indicadores por grupo;
+   4. Consulta cifras por grupo de indicadores;
+   5. Consulta por fecha de registro;
+   6. Consulta de información por Id de indicador;
+   7. Conteo de cifras para cada indicador; y
+   8. Conteo de cifras para un indicador.
+  Adicionalmente, brinda una descripción breve de la composición de los grupos, explica el mecanismo para descargar datos de indicadores por rangos (Id), una tabla en la que pueden filtrarse los indicadores   por palabra clave y un código para graficar los indicadores seleccionados.
+3. BCH_API_Julia.qmd: Brinda ejemplos de códigos en Julia para obtener información de la API, obteniendo todo lo que puede ejecutarse en el numeral previo.
+
+Los mecanismos adiconales de consulta son los siguientes:
+
+1. BCH_Webpage.qmd: consulta de algunos archivos ubicados en diferentes rutas de la página web del BCH.
+2. PaginaWeb_Julia.qmd: consulta a archivos dinámicos de la página web del BCH.
 
 ## BCH_API_Python.qmd
 
