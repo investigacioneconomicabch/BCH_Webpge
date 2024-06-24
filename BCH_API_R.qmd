@@ -35,7 +35,7 @@ library(jsonlite)
 library(plotly)
 library(tidyverse)
 
-clave <- "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
+clave <- "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" #Favor ingresar la clave proporcionada.
 ```
 
 # Formatos de consulta
