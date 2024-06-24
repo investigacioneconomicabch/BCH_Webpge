@@ -47,7 +47,7 @@ import os
 from IPython.display import Markdown
 from tabulate import tabulate
 
-clave_asignada = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
+clave_asignada = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" #Favor ingresar la clave proporcionada.
 
 # Las funciones que ejecutan los procesos están guardadas
 # en el archivo "/functions/bch_api.py";
