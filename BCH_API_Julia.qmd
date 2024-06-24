@@ -33,7 +33,7 @@ Para conocer los datos disponibles, se debe ejecutar una consulta al catálogo d
 using Azure,Chain,CSV,DataFrames,DataFramesMeta,Dates,HTTP,JSON,JSON3
 
 wd = @__DIR__
-clave = "ff34cff7b0024ea39eb565fccb9f03b6" #Favor ingresar la clave proporcionada.
+clave = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" #Favor ingresar la clave proporcionada.
 ```
 
 ```{julia}
