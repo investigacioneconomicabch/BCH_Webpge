@@ -4,7 +4,7 @@ Este repositorio contiene archivos que permiten obtener series estadísticas de 
 
 Para entender el mecanismo de consulta de la API (Application Programming Interface), se pueden utilizar los siguientes archivos:
 
-1. BCH_API_Python.qmd: uso de la API para consulta de más de 15,000 variables contenidas en los archivos dinámicos; en este archivo se explican cómo obtener los componentes de cada grupo;
+1. BCH_API_Python.qmd: uso de la API para consulta de más de 10,000 variables contenidas en los archivos dinámicos; en este archivo se explican cómo obtener los componentes de cada grupo;
 2. BCH_API_R.qmd: Brinda ejemplos de códigos en R para obtener información de la API, apegándose a los mecanismos de consulta descritos en [su página web](https://bchapi-am.developer.azure-api.net/):
    1. Consulta de catálogo de indicadores;
    2. Consulta cifras por Id de indicador;
